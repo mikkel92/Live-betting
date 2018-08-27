@@ -37,6 +37,8 @@ def Get_VPNGate_servers():
 
 def connect_to_VPN(server):
 
+	# Currently works on Mac OS
+
 	print "\nLaunching VPN..."
 	path = '/tmp/tmpVPNconfig'
 
@@ -66,16 +68,19 @@ def connect_to_VPN(server):
 	print '\nVPN terminated'
 
 
+if __name__ == "__main__":
 
-servers = Get_VPNGate_servers()
-for vpn in servers[0:2]:
-	time_connected = datetime.now()
-	connection_succes = connect_to_VPN(vpn)
-	webdriver.Chrome().close()
-	if connection_succes:
-		scrape_time = datetime.now() - time_connected
-		time.sleep(300 - scrape_time.total_seconds())
-	else: continue
+	servers = Get_VPNGate_servers()
+	
+	for vpn in servers[0:2]:
+		time_connected = datetime.now()
+		connection_succes = connect_to_VPN(vpn)
+		webdriver.Chrome().close()
+
+		if connection_succes:
+			scrape_time = datetime.now() - time_connected
+			time.sleep(300 - scrape_time.total_seconds())
+		else: continue
 
 
 
