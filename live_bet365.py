@@ -2,7 +2,6 @@
 import time
 import datetime
 import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
 import os, re
 import selenium
@@ -78,7 +77,7 @@ def save_data(data):
 	print "Saving match data:"
 	# Create folder for data if it doesn't exists
 	time_now = datetime.now()
-	save_path = "%s/%s/%s/" % (os.getcwd(),time_now.year,time_now.month)
+	save_path = "%s/%s/%s/%s/" % (os.getcwd(),time_now.year,time_now.month,time_now.day)
 	if not os.path.exists(save_path):
 		os.makedirs(save_path)
 	
@@ -119,15 +118,13 @@ def scrape_betting():
 	browser.get(page_url) # get the url for the corrosponding league
 	browser.get(page_url)
 
-	time.sleep(25) # requires a long waiting time when connecting via VPN
+	time.sleep(5) # requires a long waiting time when connecting via VPN
 
 	# Click on the tab to web scrape
 	se_begivenhed_button = browser.find_elements_by_class_name("ip-ControlBar_BBarItem")
 	se_begivenhed_button[1].click()
-	time.sleep(5)
+	time.sleep(1)
 
-	
-	
 	# Click on every live event in the live betting tab
 	event_buttons = browser.find_elements_by_class_name("ipn-FixtureButton")
 	failed_loads = []
@@ -138,7 +135,8 @@ def scrape_betting():
 
 		# Try to get the data from match
 		match_data = get_match_data(button,browser)
-		
+		print match_data[1]
+
 		# If the event is not a soccer match, then break
 		if match_data == "not_soccer_match":
 			print "Done scraping soccer matches"
@@ -183,6 +181,9 @@ def scrape_betting():
 	#print html
 
 	"""
-scrape_betting()
+
+# Run code without VPN by running this script directly
+if __name__ == "__main__":
+	scrape_betting()
 
 
