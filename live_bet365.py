@@ -18,7 +18,7 @@ def get_match_data(button,browser):
 	# click mathc button and wait a bit for it to load
 	start_time = datetime.now()
 	button.click()
-	time.sleep(1.0)
+	#time.sleep(1.0)
 	inner_html = str(button.get_attribute('innerHTML').encode(encoding='UTF-8',errors='strict'))
 
 	# change to stats tab i live stream is an option for the match
@@ -41,19 +41,30 @@ def get_match_data(button,browser):
 	# try to scrape the match data
 	try:
 		event_time = browser.find_elements_by_class_name("ml1-ScoreHeader_Clock")
+		score_data = browser.find_elements_by_class_name("ml1-ScoreHeader_Column")
 		event_data = browser.find_elements_by_class_name("ml1-AllStats")
-		#event_odds = browser.find_elements_by_class_name("ipe-EventViewDetail_MarketGrid")
+		evex1_data = browser.find_elements_by_class_name("ml1-StatWheel_Team1Text") # Properly extracts team stats from event data window
+		evex2_data = browser.find_elements_by_class_name("ml1-StatWheel_Team2Text")
 		event_odds = browser.find_elements_by_class_name("gl-MarketGroup")
-		
+				
 		processed_event_time = event_time[0].text
+		processed_score_data = split_data(score_data)
 		processed_event_data = split_data(event_data)
+		processed_evex1_data = split_data(evex1_data)
+		processed_evex2_data = split_data(evex2_data)
 		processed_event_odds = split_data(event_odds)
 		
-		match_data = [processed_event_time, processed_event_data, processed_event_odds]
+		processed_evexc_data = [] #Concatenates the evex lists
+		for i in xrange(len(processed_evex1_data)):
+			concat = processed_evex1_data[i][0] + "-" + processed_evex2_data[i][0]
+			processed_evexc_data.append(concat)
+		
+		match_data = [processed_event_time, processed_event_data, processed_event_odds, processed_score_data, processed_evexc_data]
 		print "Successfully found match data"
 		
-	except: 
+	except Exception as err: 
 		print "Failed to get data from match"
+		print "Error message:", err
 		match_data = "failed"
 
 	if "ipn-ScoreDisplayStandard " not in inner_html:
@@ -88,25 +99,31 @@ def save_data(data):
 			match_time = "PreMatch"
 		event_data = data[1]
 		event_odds = data[2]
-		
+		score_data = data[3]
+		evexc_data = data[4]
 		now = datetime.now()
 		club1 = event_odds[0][1].replace(" ", "")
-		club2 = event_odds[0][5].replace(" ", "")
+		if match_time != "" and len(event_odds[0]) < 6: #Solution to overtime matches
+			club2 = event_odds[0][3].replace(" ", "")
+		else:
+			club2 = event_odds[0][5].replace(" ", "")
 		filename = now.strftime("%d%m%y") + club1[0:3] + club2[0:3] + match_time
-		
 		fout = open(save_path + filename + '.txt', "w")
 		fout.write(match_time + "\n")
-		fout.write('\n---------------------------------------\n\n')
+		fout.write(str(score_data) + "\n")
+		fout.write('~\n')
 		for line in event_data:
 			fout.write(str(line) + "\n")
-		fout.write('\n---------------------------------------\n\n')
+			fout.write(str(evexc_data) + "\n")
+		fout.write('~\n')
 		for line in event_odds:
 			fout.write(str(line) + "\n")
 		fout.close()
 
 		print "Successfully saved data"
 
-	except:
+	except Exception as err:
+		print err
 		print "Unable to save data"
 	
 
@@ -119,12 +136,12 @@ def scrape_betting():
 	browser.get(page_url) # get the url for the corrosponding league
 	browser.get(page_url)
 
-	time.sleep(25) # requires a long waiting time when connecting via VPN
+	time.sleep(5) # requires a long waiting time when connecting via VPN
 
 	# Click on the tab to web scrape
 	se_begivenhed_button = browser.find_elements_by_class_name("ip-ControlBar_BBarItem")
 	se_begivenhed_button[1].click()
-	time.sleep(5)
+	time.sleep(1)
 
 	
 	
