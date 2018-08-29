@@ -17,7 +17,7 @@ def get_match_data(button,browser):
 	# click mathc button and wait a bit for it to load
 	start_time = datetime.now()
 	button.click()
-	#time.sleep(1.0)
+	time.sleep(0.5)
 	inner_html = str(button.get_attribute('innerHTML').encode(encoding='UTF-8',errors='strict'))
 
 	# change to stats tab i live stream is an option for the match
@@ -27,7 +27,7 @@ def get_match_data(button,browser):
 		time.sleep(0.2)
 
 	"""	
-	# Click any unclicked odds tabs
+	# Click any unclicked odds tabs ( Works but takes alot of time )
 	try:
 		event_odds = browser.find_elements_by_class_name("gl-MarketGroup")
 		for i in event_odds:
@@ -39,26 +39,24 @@ def get_match_data(button,browser):
 
 	# try to scrape the match data
 	try:
+		event_team = browser.find_elements_by_class_name("ml1-ScoreHeader_TeamText")
 		event_time = browser.find_elements_by_class_name("ml1-ScoreHeader_Clock")
 		score_data = browser.find_elements_by_class_name("ml1-ScoreHeader_Column")
 		event_data = browser.find_elements_by_class_name("ml1-AllStats")
 		evex1_data = browser.find_elements_by_class_name("ml1-StatWheel_Team1Text") # Properly extracts team stats from event data window
 		evex2_data = browser.find_elements_by_class_name("ml1-StatWheel_Team2Text")
 		event_odds = browser.find_elements_by_class_name("gl-MarketGroup")
-				
+		
+		processed_event_team = split_data(event_team)
 		processed_event_time = event_time[0].text
 		processed_score_data = split_data(score_data)
 		processed_event_data = split_data(event_data)
 		processed_evex1_data = split_data(evex1_data)
 		processed_evex2_data = split_data(evex2_data)
 		processed_event_odds = split_data(event_odds)
-		
-		processed_evexc_data = [] #Concatenates the evex lists
-		for i in xrange(len(processed_evex1_data)):
-			concat = processed_evex1_data[i][0] + "-" + processed_evex2_data[i][0]
-			processed_evexc_data.append(concat)
-		
-		match_data = [processed_event_time, processed_event_data, processed_event_odds, processed_score_data, processed_evexc_data]
+
+		match_data = [processed_event_team, processed_event_time, processed_event_data,
+		processed_event_odds, processed_score_data, processed_evex1_data, processed_evex2_data]
 		print "Successfully found match data"
 		
 	except Exception as err: 
@@ -83,7 +81,93 @@ def split_data(data):
 
 	return splitlist
 
+def rearange_data(data):
+	#print data
+	structured_data = {"teams":[],
+					   "score":[],
+					   "time":[],
+					   "stats":{"attacks":[],"dangerous attacks":[],"possession":[],
+					   "shots on target":[],"shots off target":[]},
+					   "odds":{"next goal":[],"fulltime result":[],"draw money back":[]
+					   ,"asian handicap":[]},
+					   "extra odds":[]
+						}
+	# team names
+	structured_data["teams"].append(data[0][0][0])
+	structured_data["teams"].append(data[0][1][0])
+
+	# score
+	structured_data["score"].append(data[4][0][1])
+	structured_data["score"].append(data[4][1][0])
+
+	# time
+	structured_data["time"].append(data[1])	
+
+	# stats
+	structured_data["stats"]["attacks"].append(data[5][0][0])
+	structured_data["stats"]["attacks"].append(data[6][0][0])
+	structured_data["stats"]["dangerous attacks"].append(data[5][1][0])
+	structured_data["stats"]["dangerous attacks"].append(data[6][1][0])
+	structured_data["stats"]["shots off target"].append(data[2][0][-2])
+	structured_data["stats"]["shots off target"].append(data[2][0][-1])
+	structured_data["stats"]["shots on target"].append(data[2][0][-4])
+	structured_data["stats"]["shots on target"].append(data[2][0][-3])
+
+	if len(data[2][0]) == 9: # matches with possession stats
+		structured_data["stats"]["possession"].append(data[5][2][0])
+		structured_data["stats"]["possession"].append(data[6][2][0])
+
+	# odds
+	goals_home = int(structured_data["score"][0])
+	goals_away = int(structured_data["score"][1])
+	next_goal = goals_home + goals_away + 1
+	
+	for bet_type in data[3]:
+		
+		# next goal
+		goal_str = (str(next_goal) + ". m" + "\xe5" + "l")
+		if bet_type[0] == goal_str.decode('latin1'): 
+			
+			for i_odds in bet_type:
+				try:
+					float(i_odds)
+					structured_data["odds"]["next goal"].append(i_odds)
+				except: continue
+	
+		# fulltime result
+		if bet_type[0] == "Fuldtid - Resultat":
+			
+			for i_odds in bet_type:
+				try:
+					float(i_odds)
+					structured_data["odds"]["fulltime result"].append(i_odds)
+				except: continue
+
+		# draw money back
+		draw_str = "Uafgjort - V" + "\xe6" + "ddem" + "\xe5" + "l annulleret"
+		if bet_type[0] == draw_str.decode('latin1'):
+
+			for i_odds in bet_type:
+				try:
+					float(i_odds)
+					structured_data["odds"]["draw money back"].append(i_odds)
+				except: continue
+
+		# asian handicap
+		asian_str = "Asian handicap (%i-%i)" %(goals_home,goals_away)
+		if bet_type[0] == asian_str:
+			
+			for i_entry in bet_type[1:]:
+				structured_data["odds"]["asian handicap"].append(i_entry)
+
+		# other odds:
+		structured_data["extra odds"] = data[3]
+
+		return structured_data
+
 def save_data(data):
+
+	import json
 
 	print "Saving match data:"
 	# Create folder for data if it doesn't exists
@@ -93,30 +177,17 @@ def save_data(data):
 		os.makedirs(save_path)
 	
 	try:
-		match_time = data[0].replace(":", "") # Removes the :
-		if match_time == "":
-			match_time = "PreMatch"
-		event_data = data[1]
-		event_odds = data[2]
-		score_data = data[3]
-		evexc_data = data[4]
+		save_data = rearange_data(data)
+		match_team = save_data["teams"]
+		match_time = save_data["time"][0].replace(":", "")
+		print match_team[0], match_time
 		now = datetime.now()
-		club1 = event_odds[0][1].replace(" ", "")
-		if match_time != "" and len(event_odds[0]) < 6: #Solution to overtime matches
-			club2 = event_odds[0][3].replace(" ", "")
-		else:
-			club2 = event_odds[0][5].replace(" ", "")
+		club1 = match_team[0].replace(" ", "")
+		club2 = match_team[1].replace(" ", "")
 		filename = now.strftime("%d%m%y") + club1[0:3] + club2[0:3] + match_time
 		fout = open(save_path + filename + '.txt', "w")
-		fout.write(match_time + "\n")
-		fout.write(str(score_data) + "\n")
-		fout.write('~\n')
-		for line in event_data:
-			fout.write(str(line) + "\n")
-			fout.write(str(evexc_data) + "\n")
-		fout.write('~\n')
-		for line in event_odds:
-			fout.write(str(line) + "\n")
+		fout.write(json.dumps(save_data))
+		
 		fout.close()
 
 		print "Successfully saved data"
@@ -147,13 +218,18 @@ def scrape_betting():
 	failed_loads = []
 	page_fails = ([0,0])
 
+	match_time = browser.find_elements_by_class_name("ipn-ScoreDisplayStandard_Timer")
+
 	for counter, button in enumerate(event_buttons):
-		print counter
+
+		if counter == 1: break
+		# skip matches that have not started yet
+		if float(match_time[counter].text[0:2]) < 1:
+			continue
 
 		# Try to get the data from match
-		match_data = get_match_data(button,browser)
-		print match_data[1]
-
+		match_data = get_match_data(button=button,browser=browser)
+	
 		# If the event is not a soccer match, then break
 		if match_data == "not_soccer_match":
 			print "Done scraping soccer matches"
@@ -161,28 +237,28 @@ def scrape_betting():
 
 		# If the script failed to get data from a match, try again. If it fails again, then continue
 		elif match_data == "failed":
-			match_data = get_match_data(button,browser)
+			match_data = get_match_data(button=button,browser=browser)
 			if match_data == "failed":
 				failed_loads.append(button)
 				continue
 			else: 
-				save_data(match_data)
+				save_data(data=match_data)
 				continue
 
 		# Save the match data if successfully scraped
 		else:
-			save_data(match_data)
+			save_data(data=match_data)
 			continue
 		
 	# Try to get the data from the failed matches one more time, before ending script
 	for button in failed_loads:
 
-		match_data = get_match_data(button,browser)
+		match_data = get_match_data(button=button,browser=browser)
 		if match_data == "failed":
 			page_fails[1] += 1
 			print "failed to get page second time"
 		else:
-			save_data(match_data)
+			save_data(data=match_data)
 			
 
 	print page_fails

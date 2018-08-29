@@ -34,8 +34,10 @@ def load_match_data(match_save_name):
 	match_data = []
 	for file in files:
 		if match_save_name in file:
-			match_data.append(np.loadtxt(data_dir + file))
-
+			
+			fo = open(data_dir + file, "rw+")
+			match_data.append(fo.readlines())
+			fo.close()
 
 if __name__ == '__main__':
-	load_match_data('AllAfr')
+	load_match_data('AraBan')
