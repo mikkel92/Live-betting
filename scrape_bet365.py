@@ -11,20 +11,11 @@ from selenium.webdriver.common.keys import Keys
 import urllib, json
 from datetime import datetime
 
-def get_match_data(button,browser):
+def get_match_data(button,browser,debug=False):
 
-	print "Getting match data:"
-	# click mathc button and wait a bit for it to load
-	start_time = datetime.now()
-	button.click()
-	time.sleep(0.5)
-	inner_html = str(button.get_attribute('innerHTML').encode(encoding='UTF-8',errors='strict'))
+	if debug:
+		print "Getting match data:"
 
-	# change to stats tab i live stream is an option for the match
-	if "ipn-ScoreDisplayStandard_AVIcon" in inner_html:
-		stats_tab = browser.find_element_by_class_name("lv-ButtonBar_MatchLive")
-		stats_tab.click()
-		time.sleep(0.2)
 
 	"""	
 	# Click any unclicked odds tabs ( Works but takes alot of time )
@@ -38,7 +29,22 @@ def get_match_data(button,browser):
 	"""
 
 	# try to scrape the match data
+
+	inner_html = "None"
+
 	try:
+		# click match button and wait a bit for it to load
+		start_time = datetime.now()
+		button.click()
+		time.sleep(0.5)
+		inner_html = str(button.get_attribute('innerHTML').encode(encoding='UTF-8',errors='strict'))
+
+		# change to stats tab i live stream is an option for the match
+		if "ipn-ScoreDisplayStandard_AVIcon" in inner_html:
+			stats_tab = browser.find_element_by_class_name("lv-ButtonBar_MatchLive")
+			stats_tab.click()
+			time.sleep(0.2)
+
 		event_team = browser.find_elements_by_class_name("ml1-ScoreHeader_TeamText")
 		event_time = browser.find_elements_by_class_name("ml1-ScoreHeader_Clock")
 		score_data = browser.find_elements_by_class_name("ml1-ScoreHeader_Column")
@@ -57,12 +63,16 @@ def get_match_data(button,browser):
 
 		match_data = [processed_event_team, processed_event_time, processed_event_data,
 		processed_event_odds, processed_score_data, processed_evex1_data, processed_evex2_data]
-		print "Successfully found match data"
+
+		if debug:
+			print "Successfully found match data"
 		
 	except Exception as err: 
-		print "Failed to get data from match"
-		print "Error message:", err
+		if debug:
+			print "Failed to get data from match"
+			print "Error message:", err
 		match_data = "failed"
+
 
 	if "ipn-ScoreDisplayStandard " not in inner_html:
 		match_data = "not_soccer_match"
@@ -165,11 +175,13 @@ def rearange_data(data):
 
 		return structured_data
 
-def save_data(data):
+def save_data(data,debug=False):
 
 	import json
+	
+	if debug:
+		print "Saving match data:"
 
-	print "Saving match data:"
 	# Create folder for data if it doesn't exists
 	time_now = datetime.now()
 	save_path = "%s/%s/%s/%s/" % (os.getcwd(),time_now.year,time_now.month,time_now.day)
@@ -180,7 +192,7 @@ def save_data(data):
 		save_data = rearange_data(data)
 		match_team = save_data["teams"]
 		match_time = save_data["time"][0].replace(":", "")
-		print match_team[0], match_time
+		
 		now = datetime.now()
 		club1 = match_team[0].replace(" ", "")
 		club2 = match_team[1].replace(" ", "")
@@ -190,14 +202,17 @@ def save_data(data):
 		
 		fout.close()
 
-		print "Successfully saved data"
+		if debug:
+			print match_team[0], match_time
+			print "Successfully saved data"
 
 	except Exception as err:
-		print err
-		print "Unable to save data"
+		if debug:
+			print err
+			print "Unable to save data"
 	
 
-def scrape_betting():
+def scrape_betting(debug=False):
 
 	page_url_mobile = "https://mobile.bet365.dk/#type=InPlay;"
 	page_url = "https://www.bet365.dk/#/IP/"
@@ -214,8 +229,9 @@ def scrape_betting():
 		se_begivenhed_button[1].click()
 		time.sleep(5)
 	except Exception as err: 
-		print "Failed to load webpage"
-		print "Error message:", err
+		if debug:
+			print "Failed to load webpage"
+			print "Error message:", err
 		browser.close()
 		return "failed"
 
@@ -224,7 +240,7 @@ def scrape_betting():
 	# Click on every live event in the live betting tab
 	event_buttons = browser.find_elements_by_class_name("ipn-FixtureButton")
 	failed_loads = []
-	page_fails = ([0,0])
+
 
 	match_time = browser.find_elements_by_class_name("ipn-ScoreDisplayStandard_Timer")
 
@@ -233,50 +249,55 @@ def scrape_betting():
 		# for debugging
 		#if counter == 1: break
 
-		# skip matches that have not started yet
-		if float(match_time[counter].text[0:2]) < 1:
-			continue
+		# skip matches that have not started yet (TODO: sometimes fails)
+		try:
+			if float(match_time[counter].text[0:2]) < 1:
+				continue
+		except Exception as err: 
+			if debug:
+				print "Failed to get time for match"
+				print "Error message:", err
 
 		# Try to get the data from match
-		match_data = get_match_data(button=button,browser=browser)
+		
+		match_data = get_match_data(button=button,browser=browser,debug=debug)
 	
 		# If the event is not a soccer match, then break
 		if match_data == "not_soccer_match":
-			print "Done scraping soccer matches"
+			if debug:
+				print "Done scraping soccer matches"
 			break
 
 		# If the script failed to get data from a match, try again. If it fails again, then continue
 		elif match_data == "failed":
-			match_data = get_match_data(button=button,browser=browser)
+			match_data = get_match_data(button=button,browser=browser,debug=debug)
 			if match_data == "failed":
 				failed_loads.append(button)
 				continue
 			else: 
-				save_data(data=match_data)
+				save_data(data=match_data,debug=debug)
 				continue
 
 		# Save the match data if successfully scraped
 		else:
-			save_data(data=match_data)
+			save_data(data=match_data,debug=debug)
 			continue
 		
 	# Try to get the data from the failed matches one more time, before ending script
 	for button in failed_loads:
 
-		match_data = get_match_data(button=button,browser=browser)
+		match_data = get_match_data(button=button,browser=browser,debug=debug)
 		if match_data == "failed":
-			page_fails[1] += 1
-			print "failed to get page second time"
+			if debug:
+				print "failed to get page second time"
 		else:
-			save_data(data=match_data)
-			
+			save_data(data=match_data,debug=debug)
 
-	print page_fails
 
 	#print source
 	browser.close()
 	
-	return "succes"
+	return "success"
 
 # Run code without VPN by running this script directly
 if __name__ == "__main__":
