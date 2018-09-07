@@ -2,7 +2,6 @@
 import time
 import datetime
 import numpy as np
-import matplotlib.pyplot as plt
 import os, re
 import selenium
 from selenium import webdriver
@@ -217,7 +216,9 @@ def scrape_betting(debug=False):
 	page_url_mobile = "https://mobile.bet365.dk/#type=InPlay;"
 	page_url = "https://www.bet365.dk/#/IP/"
 
-	browser = webdriver.Chrome()  # choose web browser
+	options = webdriver.ChromeOptions()
+	options.add_argument('headless')
+	browser = webdriver.Chrome(chrome_options=options)  # choose web browser
 	browser.get(page_url) # get the url for the corrosponding league
 	browser.get(page_url)
 
@@ -301,6 +302,6 @@ def scrape_betting(debug=False):
 
 # Run code without VPN by running this script directly
 if __name__ == "__main__":
-	scrape_betting()
+	scrape_betting(debug=True)
 
 
