@@ -7,8 +7,8 @@ Requirements: Selenium, Chromedriver, Requests
 
 Installation: ( $ = type in command line )
 
-Make a folder for the project
-$ mkdir "folder"
+Make a folder for the project \\
+$ mkdir "folder" \\
 $ cd "folder"
 $ git clone https://github.com/mikkel92/Live-betting.git
 $ pip install selenium
