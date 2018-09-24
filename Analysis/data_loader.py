@@ -22,13 +22,14 @@ def load_one_day(date):
 	matches = []
 	for match in file_list:
 		matches.append(''.join([letter for letter in match[:-4] if not letter.isdigit()]))
-
-
-		
+	
 	unique_matches = np.unique(matches)
 
-	load_match(unique_matches[0],"2018/9/6")
-
+	day_data = []
+	for match in unique_matches:
+		day_data.append(load_match(match=match,date=date))
+	
+	return day_data
 
 
 if __name__ == "__main__":

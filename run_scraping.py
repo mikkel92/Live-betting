@@ -13,19 +13,27 @@ def run_scraper(debug=False):
 					["gb","mnc","success"],["gb","lon","success"]]
 
 	scrape_site = "success"
+	n = 0
 
 	while True:
 		for server in server_list:
 			if server[0] in ["ca","au","us"]:
 				continue 
 
+		
 			# If the last server successfully loaded the matches
 			if scrape_site == "success":
+				n = 0
 				start_time = datetime.now()	
 
 			# If the last page failed and the next page in line failed last attemp, then continue to working server
 			if scrape_site == "failed" and server[2] == "failed":
-				continue
+				n += 1
+				if n < 10:
+					continue
+				else:
+					n = 0
+					start_time = datetime.now()	
 
 			connect_with_mullvad(server=server)
 			scrape_site = scrape_betting(debug=debug)
@@ -40,6 +48,7 @@ def run_scraper(debug=False):
 			scrape_time = datetime.now() - start_time 
 			
 			time.sleep(299.5 - scrape_time.total_seconds())
+		
 
 if __name__ == "__main__":
 	run_scraper()
