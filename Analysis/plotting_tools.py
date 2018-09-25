@@ -1,16 +1,25 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from data_loader import *
+from analysis_tools import spline_data
 import sys
 
 def plot_match_data(match_data):
 
 	time = [float(i["time"][0].replace(':','')) for i in match_data]
-	attacks_home = [i["stats"]["attacks"][0] for i in match_data]
-	attacks_away = [i["stats"]["attacks"][1] for i in match_data]
+	attacks_home = [float(i["stats"]["attacks"][0]) for i in match_data]
+	attacks_away = [float(i["stats"]["attacks"][1]) for i in match_data]
 	
 	plt.plot(time,attacks_home,'.',label="home")
 	plt.plot(time,attacks_away,'.',label="away")
+
+	#print type(time), type(attacks_home[0])
+	#splined data
+	spline_attacks_home = spline_data(time,attacks_home)
+	spline_attacks_away = spline_data(time,attacks_away)
+	plt.plot(spline_attacks_home[0],spline_attacks_home[1],label="home")
+	plt.plot(spline_attacks_away[0],spline_attacks_away[1],label="away")
+
 	plt.xlabel("time [wierd unit]")
 	plt.xlim(0,max(time) + 200)
 	plt.ylabel("attacks")
@@ -19,7 +28,7 @@ def plot_match_data(match_data):
 	plt.show(block=False)
 	raw_input('...')
 
-	plt.close_all()
+	
 
 def get_day_succes(day_data):
 
@@ -91,6 +100,7 @@ def plot_scrape_succes(year,month):
 
 
 if __name__ == "__main__":
+	#plot_match_data(match_data=load_match(match='AliMil',date='2018/9/5'))
 	plot_scrape_succes(year='2018',month='9')
 
 
