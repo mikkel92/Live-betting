@@ -13,7 +13,7 @@ from datetime import datetime
 def get_match_data(button,browser,debug=False):
 
 	if debug:
-		print "Getting match data:"
+		print("Getting match data:")
 
 
 	"""	
@@ -24,7 +24,7 @@ def get_match_data(button,browser,debug=False):
 			if i.size['height'] < 35: #Arbitrary placeholder, the heigh is 30 seemingly
 				i.click()
 	except:
-		print "whatever"
+		print("whatever")
 	"""
 
 	# try to scrape the match data
@@ -64,12 +64,12 @@ def get_match_data(button,browser,debug=False):
 		processed_event_odds, processed_score_data, processed_evex1_data, processed_evex2_data]
 
 		if debug:
-			print "Successfully found match data"
+			print("Successfully found match data")
 		
 	except Exception as err: 
 		if debug:
-			print "Failed to get data from match"
-			print "Error message:", err
+			print("Failed to get data from match")
+			print("Error message:", err)
 		match_data = "failed"
 
 
@@ -91,7 +91,7 @@ def split_data(data):
 	return splitlist
 
 def rearange_data(data):
-	#print data
+	#print(data)
 	structured_data = {"teams":[],
 					   "score":[],
 					   "time":[],
@@ -179,7 +179,7 @@ def save_data(data,debug=False):
 	import json
 	
 	if debug:
-		print "Saving match data:"
+		print("Saving match data:")
 
 	# Create folder for data if it doesn't exists
 	time_now = datetime.now()
@@ -202,13 +202,13 @@ def save_data(data,debug=False):
 		fout.close()
 
 		if debug:
-			print match_team[0], match_time
-			print "Successfully saved data"
+			print(match_team[0], match_time)
+			print("Successfully saved data")
 
 	except Exception as err:
 		if debug:
-			print err
-			print "Unable to save data"
+			print(err)
+			print("Unable to save data")
 	
 
 def scrape_betting(debug=False):
@@ -231,8 +231,8 @@ def scrape_betting(debug=False):
 		time.sleep(5)
 	except Exception as err: 
 		if debug:
-			print "Failed to load webpage"
-			print "Error message:", err
+			print("Failed to load webpage")
+			print("Error message:", err)
 		browser.close()
 		return "failed"
 
@@ -256,8 +256,8 @@ def scrape_betting(debug=False):
 				continue
 		except Exception as err: 
 			if debug:
-				print "Failed to get time for match"
-				print "Error message:", err
+				print("Failed to get time for match")
+				print("Error message:", err)
 
 		# Try to get the data from match
 		
@@ -266,7 +266,7 @@ def scrape_betting(debug=False):
 		# If the event is not a soccer match, then break
 		if match_data == "not_soccer_match":
 			if debug:
-				print "Done scraping soccer matches"
+				print("Done scraping soccer matches")
 			break
 
 		# If the script failed to get data from a match, try again. If it fails again, then continue
@@ -290,7 +290,7 @@ def scrape_betting(debug=False):
 		match_data = get_match_data(button=button,browser=browser,debug=debug)
 		if match_data == "failed":
 			if debug:
-				print "failed to get page second time"
+				print("failed to get page second time")
 		else:
 			save_data(data=match_data,debug=debug)
 
