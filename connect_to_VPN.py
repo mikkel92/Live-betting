@@ -113,10 +113,30 @@ def disconnect_with_mullvad():
 	time.sleep(5) # takes a few seconds to connect
 
 
+def connect_with_expressvpn():
+	
+	servers = os.system("expressvpn list")
+	print servers 
+	terminal_command = "$MULLVAD_DIR relay set location %s %s" % (server[0],server[1])
+	os.system(terminal_command)
+	print "Connecting to server: %s %s" % (server[0],server[1])
+	os.system('$MULLVAD_DIR connect')
+
+	time.sleep(10)
+
+def disconnect_with_expressvpn():
+
+	try:
+		print "Disconnecting from mullvad server"
+		os.system('$MULLVAD_DIR disconnect')
+	except:
+		print "Not connected via mullvad"
+
+	time.sleep(5) # takes a few seconds to connect
 
 
-
-
+if __name__ == "__main__":
+	connect_with_expressvpn()
 
 
 
