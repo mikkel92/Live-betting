@@ -3,10 +3,15 @@ from scipy import interpolate
 
 def spline_data(time_array,data_array):
 
-	xvals_new = np.linspace(0,int(max(time_array)),20)
+	# values where the spline is evaluated
+	xvals_new = np.linspace(0,int(max(time_array)),100)
 	
-	spline_data = interpolate.InterpolatedUnivariateSpline(np.array(time_array),np.array(data_array))
-	spline_vals = spline_data(np.array(time_array))
+	# arange data in chronological order
+	time = np.array(sorted(time_array))
+	data = np.array(sorted(data_array))
+
+	tck = interpolate.splrep(time, data)
+	spline_vals = interpolate.splev(xvals_new, tck)
 	
-	print xvals_new, spline_vals
+	#print(xvals_new, spline_vals)
 	return xvals_new, spline_vals

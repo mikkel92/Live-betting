@@ -94,23 +94,19 @@ def get_mullvad_servers():
 	#print html
 
 def connect_with_mullvad(server):
-
-	mullvad_path = "/Applications/Mullvad\ VPN.app/Contents/Resources/mullvad"
 	
-	terminal_command = mullvad_path + " relay set location %s %s" % (server[0],server[1])
+	terminal_command = "$MULLVAD_DIR relay set location %s %s" % (server[0],server[1])
 	os.system(terminal_command)
 	print "Connecting to server: %s %s" % (server[0],server[1])
-	os.system(mullvad_path + ' connect')
+	os.system('$MULLVAD_DIR connect')
 
 	time.sleep(10)
 
 def disconnect_with_mullvad():
 
-	mullvad_path = "/Applications/Mullvad\ VPN.app/Contents/Resources/mullvad"
-
 	try:
 		print "Disconnecting from mullvad server"
-		os.system(mullvad_path + ' disconnect')
+		os.system('$MULLVAD_DIR disconnect')
 	except:
 		print "Not connected via mullvad"
 

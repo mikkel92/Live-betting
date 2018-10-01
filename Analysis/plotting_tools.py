@@ -6,23 +6,47 @@ import sys
 
 def plot_match_data(match_data):
 
-	time = [float(i["time"][0].replace(':','')) for i in match_data]
-	attacks_home = [float(i["stats"]["attacks"][0]) for i in match_data]
-	attacks_away = [float(i["stats"]["attacks"][1]) for i in match_data]
-	
-	plt.plot(time,attacks_home,'.',label="home")
-	plt.plot(time,attacks_away,'.',label="away")
+	data_str = "shots on target"
+	time = sorted([float(i["time"][0].replace(':','')) for i in match_data])
+	data_home = sorted([float(i["stats"][data_str][0]) for i in match_data])
+	data_away = sorted([float(i["stats"][data_str][1]) for i in match_data])
+	goals_home = sorted([int(i["score"][0]) for i in match_data])
+	goals_away = sorted([int(i["score"][1]) for i in match_data])
 
-	#print type(time), type(attacks_home[0])
+	# add the data point 0,0
+	extra_point = np.array([0.0])
+	time = np.concatenate((extra_point,time))
+	data_home = np.concatenate((extra_point,data_home))
+	data_away = np.concatenate((extra_point,data_away))
+	goals_home = np.concatenate((extra_point,goals_home))
+	goals_away = np.concatenate((extra_point,goals_away))
+
+	
+	for data_point in range(1,len(time)):
+
+		if goals_home[data_point] > goals_home[data_point - 1]:
+			plt.vlines(time[data_point],-100,1000,linewidth=2,linestyle='dashed',colors='r')
+		if goals_away[data_point] > goals_away[data_point - 1]:
+			plt.vlines(time[data_point],-100,1000,linewidth=2,linestyle='dashed',colors='g')
+	
+
+	plt.hlines(100,0,32,linewidth=2,linestyle='dashed',colors='k')
+	plt.plot(time,data_home,'.',label="home")
+	plt.plot(time,data_away,'.',label="away")
+
+	#print(type(time), type(data_home[0]))
 	#splined data
-	spline_attacks_home = spline_data(time,attacks_home)
-	spline_attacks_away = spline_data(time,attacks_away)
-	plt.plot(spline_attacks_home[0],spline_attacks_home[1],label="home")
-	plt.plot(spline_attacks_away[0],spline_attacks_away[1],label="away")
+	spline_data_home = spline_data(time,data_home)
+	spline_data_away = spline_data(time,data_away)
+
+	plt.plot(spline_data_home[0],spline_data_home[1],label="home",c='r')
+	plt.plot(spline_data_away[0],spline_data_away[1],label="away",c='g')
+
 
 	plt.xlabel("time [wierd unit]")
-	plt.xlim(0,max(time) + 200)
+	plt.xlim(-100,max(time) + 200)
 	plt.ylabel("attacks")
+	plt.ylim(-2,max(np.concatenate((data_home,data_away))))
 	plt.legend()
 	plt.grid()
 	plt.show(block=False)
@@ -40,7 +64,7 @@ def get_day_succes(day_data):
 		match_times = []
 		for times in match_data:
 			
-			#print times["time"][0], str('45:00')
+			#print(times["time"][0], str('45:00'))
 			#break
 			if times["time"][0] == str('45:00'):
 				continue
@@ -60,12 +84,12 @@ def get_day_succes(day_data):
 			enough_data[3] += 1
 		if np.count_nonzero(np.histogram(match_times,bins=bins)[0]) >= len(bins) - 5:
 			enough_data[4] += 1
-		#print np.histogram(match_times,bins=bins)[0]
-	#print enough_data, len(day_data)
+		#print(np.histogram(match_times,bins=bins)[0])
+	#print(enough_data, len(day_data))
 	return np.array(enough_data) / float(len(day_data))
 	
 	
-def plot_scrape_succes(year,month):
+def plot_scrape_succes(year,month): # TODO change to use the load month function
 
 	
 	days = range(1,32)
@@ -73,7 +97,7 @@ def plot_scrape_succes(year,month):
 	month_hist = [[],[],[],[],[]]
 	for day in days:
 
-		print "loading day %i" %day
+		print("loading day %i" %day)
 		day_str = "%s/%s/%s" %(year,month,day)
 
 		try:
@@ -100,8 +124,8 @@ def plot_scrape_succes(year,month):
 
 
 if __name__ == "__main__":
-	#plot_match_data(match_data=load_match(match='AliMil',date='2018/9/5'))
-	plot_scrape_succes(year='2018',month='9')
+	plot_match_data(match_data=load_match(match='AliMil',date='2018/9/5'))
+	#plot_scrape_succes(year='2018',month='9')
 
 
 

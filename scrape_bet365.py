@@ -177,7 +177,7 @@ def rearange_data(data):
 def save_data(data,debug=False):
 
 	import json
-	
+	debug = True
 	if debug:
 		print("Saving match data:")
 
@@ -201,6 +201,9 @@ def save_data(data,debug=False):
 		
 		fout.close()
 
+		with open(save_path + filename + '.json', "w") as outfile:
+			json.dump(save_data, outfile)
+
 		if debug:
 			print(match_team[0], match_time)
 			print("Successfully saved data")
@@ -217,7 +220,7 @@ def scrape_betting(debug=False):
 	page_url = "https://www.bet365.dk/#/IP/"
 
 	options = webdriver.ChromeOptions()
-	options.add_argument('headless')
+	#options.add_argument('headless')
 	browser = webdriver.Chrome(chrome_options=options)  # choose web browser
 	browser.get(page_url) # get the url for the corrosponding league
 	browser.get(page_url)
