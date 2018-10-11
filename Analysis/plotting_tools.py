@@ -124,8 +124,8 @@ def plot_scrape_succes(year,month): # TODO change to use the load month function
 
 
 if __name__ == "__main__":
-	plot_match_data(match_data=load_match(match='AliMil',date='2018/9/5'))
-	#plot_scrape_succes(year='2018',month='9')
+	#plot_match_data(match_data=load_match(match='AliMil',date='2018/9/5'))
+	plot_scrape_succes(year='2018',month='9')
 
 
 

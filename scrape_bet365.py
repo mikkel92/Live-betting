@@ -201,8 +201,8 @@ def save_data(data,debug=False):
 		
 		fout.close()
 
-		with open(save_path + filename + '.json', "w") as outfile:
-			json.dump(save_data, outfile)
+		#with open(save_path + filename + '.json', "w") as outfile:
+		#	json.dump(save_data, outfile)
 
 		if debug:
 			print(match_team[0], match_time)
@@ -309,15 +309,25 @@ def scrape_betting(debug=False):
 
 	page_url_mobile = "https://mobile.bet365.dk/#type=InPlay;"
 	page_url = "https://www.bet365.dk/#/IP/"
-
+	
 	options = webdriver.ChromeOptions()
-	#options.add_argument('headless')
+	options.add_argument('headless')
 	browser = webdriver.Chrome(chrome_options=options)  # choose web browser
-	browser.get(page_url) # get the url for the corrosponding league
-	browser.get(page_url)
+	browser.set_page_load_timeout(10)
+	"""
+	options = webdriver.FirefoxOptions()
+	options.add_argument('headless')
+	browser = webdriver.Firefox("/usr/local/bin/")
+	"""
+	try:
+		browser.get(page_url) # get the url for the corrosponding league
+		browser.get(page_url)
+		time.sleep(10) # sometimes requires a long waiting time when connecting via VPN
 
-	time.sleep(10) # sometimes requires a long waiting time when connecting via VPN
-
+	except:
+		browser.close()
+		return "failed"
+	
 	# Click on the tab to web scrape
 	try: 
 		se_begivenhed_button = browser.find_elements_by_class_name("ip-ControlBar_BBarItem")

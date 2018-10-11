@@ -58,7 +58,7 @@ class data_loader():
 			day_str = "%s/%s/%s" %(self.year,self.month,day)
 			self.date = day_str
 
-			if os.path.exists(day_str):
+			if os.path.exists(self.path + "/../" + day_str):
 				day_data = self.load_one_day()
 			else: 
 				day_data = np.nan
@@ -71,7 +71,7 @@ class data_loader():
 	def dump_month(self):
 
 		data = self.load_month()
-		fout = open(self.path + '/tmp_month_data.json', "w")
+		fout = open(self.path + '/' + self.year + "_" + self.month + '_month_data.json', "w")
 		fout.write(json.dumps(data))
 
 		fout.close()
@@ -79,7 +79,7 @@ class data_loader():
 
 if __name__ == "__main__":
 	#dump_month(load_month("2018","9"))
-	loader = data_loader("2018/9/6")
+	loader = data_loader("2018/10/6")
 	loader.load_one_day()
 	loader.dump_month()
 
