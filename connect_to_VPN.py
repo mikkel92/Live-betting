@@ -1,10 +1,9 @@
 import time
 import numpy as np
-import matplotlib.pyplot as plt
 import os, re, sys, tempfile, base64, subprocess
 import urllib, json
 import requests
-from live_bet365 import scrape_betting
+import subprocess
 from datetime import datetime
 from selenium import webdriver
 from bs4 import BeautifulSoup
@@ -113,26 +112,23 @@ def disconnect_with_mullvad():
 	time.sleep(5) # takes a few seconds to connect
 
 
-def connect_with_expressvpn():
+def connect_with_expressvpn(server):
 	
-	servers = os.system("expressvpn list")
-	print servers 
-	terminal_command = "$MULLVAD_DIR relay set location %s %s" % (server[0],server[1])
+	terminal_command = "expressvpn connect %s" % (server[0])
 	os.system(terminal_command)
-	print "Connecting to server: %s %s" % (server[0],server[1])
-	os.system('$MULLVAD_DIR connect')
+	print "Connecting to server: %s" % (server[0])
 
 	time.sleep(10)
 
 def disconnect_with_expressvpn():
 
 	try:
-		print "Disconnecting from mullvad server"
-		os.system('$MULLVAD_DIR disconnect')
+		print "Disconnecting from server"
+		os.system('expressvpn disconnect')
 	except:
-		print "Not connected via mullvad"
+		print "Not connected via expressvpn"
 
-	time.sleep(5) # takes a few seconds to connect
+	time.sleep(5) # takes a few seconds to disconnect
 
 
 if __name__ == "__main__":
