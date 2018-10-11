@@ -177,7 +177,7 @@ def rearange_data(data):
 def save_data(data,debug=False):
 
 	import json
-	debug = True
+
 	if debug:
 		print("Saving match data:")
 
@@ -212,6 +212,97 @@ def save_data(data,debug=False):
 		if debug:
 			print(err)
 			print("Unable to save data")
+
+def write_to_database():
+
+	import sqlite3
+	script_path = os.path.dirname(os.path.realpath(sys.argv[0]))
+	connection = sqlite3.connect(script_path + "/database/bets")
+	cursor = connection.cursor()
+
+	print script_path + "/database/bets"
+
+	format_data = """
+	INSERT INTO Matches (
+	HomeTeam,
+	AwayTeam,
+	League,
+	Country,
+	HomeScore,
+	AwayScore,
+	TimePassed,
+	Date,
+	HomeAttacks,
+	HomeDangerousAttacks,
+	HomePossession,
+	HomeShotsOnGoal,
+	HomeShotsOffGoal,
+	HomeCorners,
+	HomeYellowCards,
+	HomeRedCards,
+	AwayAttacks,
+	AwayDangerousAttacks,
+	AwayPossession,
+	AwayShotsOnGoal,
+	AwayShotsOffGoal,
+	AwayCorners,
+	AwayYellowCards,
+	AwayRedCards,
+	HomeScoresNextGoal,
+	NoNextGoal,
+	AwayScoresNextGoal,
+	HomeAsianHandicap,
+	AwayAsianHandicap,
+	HomeTie,
+	AwayTie,
+	HomeFullTimeResult,
+	DrawFullTimeResult,
+	AwayFullTimeResult,
+	DoubleChanceHomeOrTie,
+	DoubleChanceAwayOrTie,
+	DoubleChanceHomeOrAway)
+
+    VALUES ("{HomeTeam}",
+	"{AwayTeam}",
+	"{League}",
+	"{Country}",
+	"{HomeScore}",
+	"{AwayScore}",
+	"{TimePassed}",
+	"{Date}",
+	"{HomeAttacks}",
+	"{HomeDangerousAttacks}",
+	"{HomePossession}",
+	"{HomeShotsOnGoal}",
+	"{HomeShotsOffGoal}",
+	"{HomeCorners}",
+	"{HomeYellowCards}",
+	"{HomeRedCards}",
+	"{AwayAttacks}",
+	"{AwayDangerousAttacks}",
+	"{AwayPossession}",
+	"{AwayShotsOnGoal}",
+	"{AwayShotsOffGoal}",
+	"{AwayCorners}",
+	"{AwayYellowCards}",
+	"{AwayRedCards}",
+	"{HomeScoresNextGoal}",
+	"{NoNextGoal}",
+	"{AwayScoresNextGoal}",
+	"{HomeAsianHandicap}",
+	"{AwayAsianHandicap}",
+	"{HomeTie}",
+	"{AwayTie}",
+	"{HomeFullTimeResult}",
+	"{DrawFullTimeResult}",
+	"{AwayFullTimeResult}",
+	"{DoubleChanceHomeOrTie}",
+	"{DoubleChanceAwayOrTie}",
+	"{DoubleChanceHomeOrAway}");
+    """
+
+    sql_command = format_data.format(AwayTeam=)
+	cursor.execute(sql_command)
 	
 
 def scrape_betting(debug=False):
