@@ -15,11 +15,12 @@ def get_relevant_data(match_data,match_time):
 	data_home = []
 	data_away = []
 	time = sorted([float(i["time"][0].replace(':','')) for i in match_data])
+	score = sorted([[float(i["time"][0].replace(':','')),float(i["score"][0]),float(i["score"][1])] for i in match_data])
 	
 	# get number of data points in match earlier than the time of bet
 	used_times = [i for i in time if i < match_time] # data points where time < match_time
 	# define how many datapoints there should be at least
-	try: used_times[int(match_time/1000.) - 1]
+	try: used_times[int(match_time/700.) - 1]
 	except: return
 
 	# get the data point closest to the match_time
@@ -30,10 +31,11 @@ def get_relevant_data(match_data,match_time):
 	
 	for keys in data_entries:
 		if keys == "possession": continue
-		if keys != "shots on target": continue # Used for faster testing
+		#if keys != "shots on target": continue # Used for faster testing
 		data_home.append(sorted([float(i["stats"][keys][0]) for i in match_data]))
 		data_away.append(sorted([float(i["stats"][keys][1]) for i in match_data]))
 	
+
 	# Many matches don't have possession stat
 	"""
 	# possession cant be arange from lower to higher number as the other stats, but has to be sorted in time
@@ -45,7 +47,37 @@ def get_relevant_data(match_data,match_time):
 	# add extra point for splining
 	extra_point = np.array([0.0])
 	time = np.concatenate((extra_point,time))
-	
+
+	# arange the score in a step spline
+	score.insert(0,[0.0, 0.0, 0.0])
+	home_score = [i[0:2] for i in score]
+	away_score = [[i[0],i[2]] for i in score]
+	for i_s in range(0,len(score) - 1):
+		if score[i_s][1] > score[i_s + 1][1] or score[i_s][2] > score[i_s + 1][2]:
+			return
+		if home_score[i_s][1] != home_score[i_s + 1][1]:
+			home_score[i_s][0] = home_score[i_s + 1][0] - 0.01
+		if away_score[i_s][1] != away_score[i_s + 1][1]:
+			away_score[i_s][0] = away_score[i_s + 1][0] - 0.01
+
+	home_time = [i[0] for i in home_score]
+	home_score = [i[1] for i in home_score]
+	away_time = [i[0] for i in away_score]
+	away_score = [i[1] for i in away_score]
+	score_home_spline = spline_data(home_time,home_score)
+	score_away_spline = spline_data(away_time,away_score)
+
+	"""
+	plt.scatter(home_time,home_score,s=20,alpha= 0.7)
+	plt.plot(score_home_spline[0],score_home_spline[1])
+	plt.scatter(away_time,away_score,s=20,alpha= 0.7)
+	plt.plot(score_away_spline[0],score_away_spline[1])
+	plt.grid()
+	plt.show(block=False)
+	raw_input('...')
+	plt.close()
+	sys.exit()
+	"""
 	# array for the features
 	ML_data = []
 
@@ -59,10 +91,14 @@ def get_relevant_data(match_data,match_time):
 		for i_time in range(0,len(home_spline[0])):
 			# only train on data that is available at that time in matches
 			if home_spline[0][i_time] > match_time: break
+			#if row == 0: # only append score once
+				#ML_data.append(score_home_spline[1][i_time])
+				#ML_data.append(score_away_spline[1][i_time])
 			ML_data.append(home_spline[1][i_time])
 			ML_data.append(away_spline[1][i_time])
+
 	# print ML_data
-	
+
 	return ML_data
 
 	
@@ -73,7 +109,7 @@ def get_relevant_data(match_data,match_time):
 
 	#plot_match_data(match_data[0])
 
-def reagrange_month_data(data,match_time,debug=False):
+def reagrange_month_data(data,match_time,debug=False,bet_type="next goal"):
 	matches, fails = 0,0
 
 	training = []
@@ -89,8 +125,13 @@ def reagrange_month_data(data,match_time,debug=False):
 				matches += 1
 				try:
 					match_data = get_relevant_data(match_data=match,match_time=match_time)
-					bet_data = betting_type(match_data=match,match_time=match_time,bet_type="next goal").next_goal()
-					if np.isfinite(match_data[0]).all():
+
+					if bet_type == "asian":
+						bet_data = betting_type(match_data=match,match_time=match_time).asian_line()
+					elif bet_type == "next goal":
+						bet_data = betting_type(match_data=match,match_time=match_time).next_goal()
+					
+					if np.isfinite(match_data[0]).all(): # check that data is not Nan or inf
 		
 						odds.append(bet_data[0])
 						results.append(bet_data[1])
@@ -116,7 +157,6 @@ def reagrange_month_data(data,match_time,debug=False):
 
 def adaboost_learning(training_data,training_results,odds):
 
-	from xgboost import XGBClassifier
 	from sklearn.ensemble import AdaBoostRegressor
 	from sklearn.ensemble import AdaBoostClassifier
 	from sklearn.tree import DecisionTreeRegressor
@@ -148,11 +188,26 @@ def adaboost_learning(training_data,training_results,odds):
 	filename = os.path.dirname(os.path.realpath(sys.argv[0])) + '/Adaboost_dump.sav'
 	pickle.dump(reg, open(filename, 'wb'))
 
+def XGBoost_learning(training_data,training_results,test_data,test_results,odds,max_depth=3):
 
+	import xgboost as xgb
+	import pickle
+
+	reg = xgb.XGBClassifier(max_depth=max_depth,learning_rate=0.05,n_estimators=200,objective='binary:logistic',seed=42)
+	#print clf.__dict__
+
+	reg.fit(training_data,training_results,
+			eval_set=[(training_data,training_results),(test_data,test_results)],
+			verbose=False,early_stopping_rounds=50)
+
+	#print "Feature importance: \n", reg.feature_importances_
+
+	filename = os.path.dirname(os.path.realpath(sys.argv[0])) + '/XGBoost_dump.sav'
+	pickle.dump(reg, open(filename, 'wb'))
 
 class betting_type():
 
-	def __init__(self, match_data, match_time, bet_type):
+	def __init__(self, match_data, match_time):
 		"""
 		score: array with n entries containing [time, goals_home, goals_away] in that order
 		
@@ -171,7 +226,6 @@ class betting_type():
 		self.score = score
 		self.time_index = time_index
 		self.odds = odds
-		self.bet_type = bet_type
 
 	def next_goal(self):
 
@@ -204,13 +258,13 @@ class betting_type():
 
 		# return None maybe, when it is unknown who scored next goal
 		if next_goals[0] == next_goals[1] and next_goals[0] == np.inf:
-			bet_next_goal_home = 0
-		elif next_goals[0] == min(next_goals):
 			bet_next_goal_home = 1
+		elif next_goals[0] == min(next_goals):
+			bet_next_goal_home = 0
 		elif next_goals[0] == next_goals[1]:
 			return
 		else: 
-			bet_next_goal_home = 0
+			bet_next_goal_home = 2
 
 
 		all_odds = self.odds[self.time_index]
@@ -221,11 +275,8 @@ class betting_type():
 
 			if str(search_str) == str(odds_type[0]):
 				try: 
-					odds = {
-							"home next goal":[float(odds_type[2])],
-							"no next goal":[float(odds_type[4])],
-							"away next goal":[float(odds_type[6])]
-							}
+					odds = [float(odds_type[2]), float(odds_type[4]), float(odds_type[6])]
+							
 					
 					return odds, bet_next_goal_home
 
@@ -233,6 +284,51 @@ class betting_type():
 
 		return 
 
+	def asian_line(self):
+
+		#if bet_type == "next goal":
+			#print odds_next_goal
+
+		# get current score and end result of match
+		current_goals_home = self.score[self.time_index][1]
+		current_goals_away = self.score[self.time_index][2]
+		end_score_home = self.score[-1][1]
+		end_score_away = self.score[-1][2]
+
+		bet_asian = 0
+
+		if end_score_home - current_goals_home > end_score_away - current_goals_away:
+			bet_asian = 0
+		if end_score_home - current_goals_home == end_score_away - current_goals_away:
+			bet_asian = 1
+		if end_score_home - current_goals_home < end_score_away - current_goals_away:
+			bet_asian = 2
+
+
+		all_odds = self.odds[self.time_index]
+		next_goal = int(self.score[self.time_index][1] + self.score[self.time_index][2] + 1)
+
+		for odds_type in all_odds[1]:
+			search_str = "Asian handicap"
+
+			if str(search_str) == str(odds_type[0])[0:14]:
+
+				both_odds = []
+				for count, bets in enumerate(odds_type):
+					if bets == "0.0":
+						both_odds.append(odds_type[count + 1])
+
+				try: 
+					odds = {
+							"home asian line":[float(both_odds[0])],
+							"away asian line":[float(both_odds[1])]
+							}
+					
+					return odds, bet_asian
+
+				except: return 
+
+		return 
 
 
 	

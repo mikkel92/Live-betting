@@ -2,7 +2,7 @@
 import time
 import datetime
 import numpy as np
-import os, re
+import os, re, sys
 import selenium
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchAttributeException
@@ -42,7 +42,7 @@ def get_match_data(button,browser,debug=False):
 		if "ipn-ScoreDisplayStandard_AVIcon" in inner_html:
 			stats_tab = browser.find_element_by_class_name("lv-ButtonBar_MatchLive")
 			stats_tab.click()
-			time.sleep(0.2)
+			time.sleep(0.5)
 
 		event_team = browser.find_elements_by_class_name("ml1-ScoreHeader_TeamText")
 		event_time = browser.find_elements_by_class_name("ml1-ScoreHeader_Clock")
@@ -51,6 +51,9 @@ def get_match_data(button,browser,debug=False):
 		evex1_data = browser.find_elements_by_class_name("ml1-StatWheel_Team1Text") # Properly extracts team stats from event data window
 		evex2_data = browser.find_elements_by_class_name("ml1-StatWheel_Team2Text")
 		event_odds = browser.find_elements_by_class_name("gl-MarketGroup")
+		red_cards = browser.find_elements_by_class_name("ipe-SoccerGridColumn_IRedCard")
+		yellow_cards = browser.find_elements_by_class_name("ipe-SoccerGridColumn_IYellowCard")
+		corners = browser.find_elements_by_class_name("ipe-SoccerGridColumn_ICorner")
 		
 		processed_event_team = split_data(event_team)
 		processed_event_time = event_time[0].text
@@ -59,9 +62,13 @@ def get_match_data(button,browser,debug=False):
 		processed_evex1_data = split_data(evex1_data)
 		processed_evex2_data = split_data(evex2_data)
 		processed_event_odds = split_data(event_odds)
+		processed_red_cards = split_data(red_cards)
+		processed_yellow_cards = split_data(yellow_cards)
+		processed_corners = split_data(corners) 
 
 		match_data = [processed_event_team, processed_event_time, processed_event_data,
-		processed_event_odds, processed_score_data, processed_evex1_data, processed_evex2_data]
+		processed_event_odds, processed_score_data, processed_evex1_data, processed_evex2_data, 
+		processed_yellow_cards, processed_red_cards, processed_corners]
 
 		if debug:
 			print("Successfully found match data")
@@ -96,7 +103,8 @@ def rearange_data(data):
 					   "score":[],
 					   "time":[],
 					   "stats":{"attacks":[],"dangerous attacks":[],"possession":[],
-					   "shots on target":[],"shots off target":[]},
+					   "shots on target":[],"shots off target":[], "yellow cards":[],
+					   "red cards":[], "corners":[]},
 					   "odds":{"next goal":[],"fulltime result":[],"draw money back":[]
 					   ,"asian handicap":[]},
 					   "extra odds":[]
@@ -121,6 +129,14 @@ def rearange_data(data):
 	structured_data["stats"]["shots off target"].append(data[2][0][-1])
 	structured_data["stats"]["shots on target"].append(data[2][0][-4])
 	structured_data["stats"]["shots on target"].append(data[2][0][-3])
+
+	# cards and corners
+	structured_data["stats"]["yellow cards"].append(data[7][0][0])
+	structured_data["stats"]["yellow cards"].append(data[7][0][1])
+	structured_data["stats"]["red cards"].append(data[8][0][0])
+	structured_data["stats"]["red cards"].append(data[8][0][1])
+	structured_data["stats"]["corners"].append(data[9][0][0])
+	structured_data["stats"]["corners"].append(data[9][0][1])
 
 	if len(data[2][0]) == 9: # matches with possession stats
 		structured_data["stats"]["possession"].append(data[5][2][0])
@@ -213,97 +229,6 @@ def save_data(data,debug=False):
 			print(err)
 			print("Unable to save data")
 
-def write_to_database():
-
-	import sqlite3
-	script_path = os.path.dirname(os.path.realpath(sys.argv[0]))
-	connection = sqlite3.connect(script_path + "/database/bets")
-	cursor = connection.cursor()
-
-	print script_path + "/database/bets"
-
-	format_data = """
-	INSERT INTO Matches (
-	HomeTeam,
-	AwayTeam,
-	League,
-	Country,
-	HomeScore,
-	AwayScore,
-	TimePassed,
-	Date,
-	HomeAttacks,
-	HomeDangerousAttacks,
-	HomePossession,
-	HomeShotsOnGoal,
-	HomeShotsOffGoal,
-	HomeCorners,
-	HomeYellowCards,
-	HomeRedCards,
-	AwayAttacks,
-	AwayDangerousAttacks,
-	AwayPossession,
-	AwayShotsOnGoal,
-	AwayShotsOffGoal,
-	AwayCorners,
-	AwayYellowCards,
-	AwayRedCards,
-	HomeScoresNextGoal,
-	NoNextGoal,
-	AwayScoresNextGoal,
-	HomeAsianHandicap,
-	AwayAsianHandicap,
-	HomeTie,
-	AwayTie,
-	HomeFullTimeResult,
-	DrawFullTimeResult,
-	AwayFullTimeResult,
-	DoubleChanceHomeOrTie,
-	DoubleChanceAwayOrTie,
-	DoubleChanceHomeOrAway)
-
-    VALUES ("{HomeTeam}",
-	"{AwayTeam}",
-	"{League}",
-	"{Country}",
-	"{HomeScore}",
-	"{AwayScore}",
-	"{TimePassed}",
-	"{Date}",
-	"{HomeAttacks}",
-	"{HomeDangerousAttacks}",
-	"{HomePossession}",
-	"{HomeShotsOnGoal}",
-	"{HomeShotsOffGoal}",
-	"{HomeCorners}",
-	"{HomeYellowCards}",
-	"{HomeRedCards}",
-	"{AwayAttacks}",
-	"{AwayDangerousAttacks}",
-	"{AwayPossession}",
-	"{AwayShotsOnGoal}",
-	"{AwayShotsOffGoal}",
-	"{AwayCorners}",
-	"{AwayYellowCards}",
-	"{AwayRedCards}",
-	"{HomeScoresNextGoal}",
-	"{NoNextGoal}",
-	"{AwayScoresNextGoal}",
-	"{HomeAsianHandicap}",
-	"{AwayAsianHandicap}",
-	"{HomeTie}",
-	"{AwayTie}",
-	"{HomeFullTimeResult}",
-	"{DrawFullTimeResult}",
-	"{AwayFullTimeResult}",
-	"{DoubleChanceHomeOrTie}",
-	"{DoubleChanceAwayOrTie}",
-	"{DoubleChanceHomeOrAway}");
-    """
-
-    sql_command = format_data.format(AwayTeam=)
-	cursor.execute(sql_command)
-	
 
 def scrape_betting(debug=False):
 
@@ -311,7 +236,8 @@ def scrape_betting(debug=False):
 	page_url = "https://www.bet365.dk/#/IP/"
 	
 	options = webdriver.ChromeOptions()
-	options.add_argument('headless')
+	if not debug:
+		options.add_argument('headless')
 	browser = webdriver.Chrome(chrome_options=options)  # choose web browser
 	browser.set_page_load_timeout(10)
 	"""
@@ -346,7 +272,6 @@ def scrape_betting(debug=False):
 	event_buttons = browser.find_elements_by_class_name("ipn-FixtureButton")
 	failed_loads = []
 
-
 	match_time = browser.find_elements_by_class_name("ipn-ScoreDisplayStandard_Timer")
 
 	for counter, button in enumerate(event_buttons):
@@ -366,7 +291,7 @@ def scrape_betting(debug=False):
 		# Try to get the data from match
 		
 		match_data = get_match_data(button=button,browser=browser,debug=debug)
-	
+		
 		# If the event is not a soccer match, then break
 		if match_data == "not_soccer_match":
 			if debug:

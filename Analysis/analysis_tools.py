@@ -7,8 +7,8 @@ def spline_data(time_array,data_array):
 	time_new = np.linspace(0,10000,21)
 	
 	# arange data in chronological order
-	time = np.array(sorted(time_array))
-	data = np.array(sorted(data_array))
+	time = np.array(time_array)
+	data = np.array(data_array)
 
 	#tck = interpolate.splrep(time, data)
 	#spline_vals = interpolate.splev(time_new, tck)
@@ -17,3 +17,4 @@ def spline_data(time_array,data_array):
 
 	#print(time_new, spline_vals)
 	return time_new, spline_vals
+
