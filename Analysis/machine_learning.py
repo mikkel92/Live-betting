@@ -276,7 +276,7 @@ class betting_type():
 			if str(search_str) == str(odds_type[0]):
 				try: 
 					odds = [float(odds_type[2]), float(odds_type[4]), float(odds_type[6])]
-							
+					#time[time_index]
 					
 					return odds, bet_next_goal_home
 
