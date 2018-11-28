@@ -65,7 +65,7 @@ class data_loader():
 			month_hist[day] = []
 			month_hist[day].append(day_data)
 		
-		print month_hist.keys()
+		print(month_hist.keys())
 		return month_hist
 
 	def dump_month(self):

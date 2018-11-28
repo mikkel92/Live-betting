@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from data_loader import *
-from analysis_tools import spline_data
+from analysis_tools import *
 import sys
 
 def plot_match_data(match_data):
@@ -89,43 +89,85 @@ def get_day_succes(day_data):
 	return np.array(enough_data) / float(len(day_data))
 	
 	
-def plot_scrape_succes(year,month): # TODO change to use the load month function
-
+def plot_scrape_succes(year,month):
 	
-	days = range(1,32)
+	print("loading file...")
+	script_path = os.path.dirname(os.path.realpath(sys.argv[0]))
+	file = script_path + "/%s_%s_month_data.json" %(year,month)
+
+	with open(file) as f:
+		data = json.load(f)
+
+	print("success")
+
+	plotting_data = {
+					"matches":[],
+					"entire matches":[],
+					}
+
+	wierd_teams = 0
+	one_data_point = 0
+	wierd_score = 0
 	
-	month_hist = [[],[],[],[],[]]
-	for day in days:
 
-		print("loading day %i" %day)
-		day_str = "%s/%s/%s" %(year,month,day)
-
-		try:
-			day_succes = get_day_succes(day_data=load_one_day(date=day_str))
-			for tests in range(0,len(day_succes)):
-
-				for percent in range(0,int(day_succes[tests] * 100)):
-					month_hist[tests].append(day)
+	for day in data:
+		# test
+		
+		try: 
+			nr_matches = np.shape(data[day][0])[0]
+			plotting_data["matches"].append(nr_matches)
 		except:
-			for tests in range(0,len(month_hist)):
-				month_hist[tests].append(0)
+			plotting_data["matches"].append(0)
+			continue
+
+		for match in data[day][0]:
+			checked_data = check_match_data(match)
+			wierd_teams += checked_data[0]
+			one_data_point += checked_data[1]
+			wierd_score += checked_data[2]
+			
+
+			if np.count_nonzero(check_match_data(match)) == 0:
+				
+				plotting_data["entire matches"].append(len(match))	
+				#print(score[:,1])
+				
+				#print(len(match))
+				#break
+			
+	print(wierd_teams,wierd_score,one_data_point)
+	print(max(plotting_data["entire matches"]))
+
+	"""
 	for count,hist in enumerate(month_hist):
 		label = "missing data points: %i" % (count)
 		plt.hist(hist,histtype='step',bins=np.array(days) - 0.5,label=label,linewidth=2,alpha=0.8)
-	plt.hlines(100,0,32,linewidth=2,linestyle='dashed',colors='k')
-	plt.xlabel("day")
-	plt.xlim(0,32)
-	plt.ylabel("succes rate [%]")
-	plt.legend()
+	"""
+	plot_title = "Statistics for web scraping. Nr of matches: %i" %sum(plotting_data["matches"])
+	fig, ((ax1, ax2, ax3), (ax4, ax5, ax6)) = plt.subplots(2, 3, figsize=(16, 12))
+	plt.suptitle(plot_title)
+
+	fig1 = ax1.hist(plotting_data["entire matches"],bins=np.linspace(0,30,30),histtype="step",linewidth=2)
+	ax1.set_title("Data points in match")
+
+	fig2 = ax2.plot(plotting_data["matches"],label="matches")
+	ax2.set_title("Matches per day")
+
+	ax2.set_xlabel("day")
+	ax2.set_xlim(0,32)
+	ax2.grid()
+	ax2.set_ylabel("count")
+	ax2.legend()
 		
-	plt.show(block=False)
-	raw_input('...')
+	save_title = "%s_%s_scrape_validation.png" %(year,month)
+	plt.savefig("plots/" + save_title)
+	plt.close()
 
 
 
 if __name__ == "__main__":
 	#plot_match_data(match_data=load_match(match='AliMil',date='2018/9/5'))
-	plot_scrape_succes(year='2018',month='9')
+	plot_scrape_succes(year='2018',month='10')
 
 
 

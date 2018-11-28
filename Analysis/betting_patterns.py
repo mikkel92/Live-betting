@@ -39,9 +39,9 @@ def next_goal_eval(bdt_cut,boosted_decisions,eval_results,eval_odds,bet_limit,be
 				continue
 
 		if bdt_cut == 0.6:
-			print eval_odds[match]
-			print boosted_decisions[match]
-			print max_decision, eval_results[match], "\n"
+			print(eval_odds[match])
+			print(boosted_decisions[match])
+			print(max_decision, eval_results[match], "\n")
 
 
 			
@@ -57,9 +57,9 @@ def next_goal_eval(bdt_cut,boosted_decisions,eval_results,eval_odds,bet_limit,be
 			bets += 1.
 
 		if winnings == "home vs all": # TODO make a one vs all type
-			print "WTF"
+			print("WTF")
 			if eval_results[match] == 0 and boosted_decisions[match][0] > bdt_cut:
-				#print eval_odds[match]
+				#print(eval_odds[match])
 				winnings += float(eval_odds[match][0])
 				bets += 1
 
@@ -76,7 +76,7 @@ def asian_line_eval(bdt_cut,boosted_decisions,eval_results,eval_odds,bet_limit):
 
 	winnings = 0
 	bets = 0
-	#print bdt_cut
+	#print(bdt_cut)
 	for match in range(0,len(boosted_decisions)):
 		if eval_odds[match] == "failed":
 			continue
@@ -125,7 +125,7 @@ with open(file1) as f:
 with open(file2) as f:
 	eval_data = json.load(f)
 
-for bet_result in [0,1,2,'all']:
+for bet_result in [0]:#,1,2,'all']:
 
 	bet_limit = 2.0
 	random_states = 10
@@ -134,7 +134,7 @@ for bet_result in [0,1,2,'all']:
 	bet_type = "next goal"
 
 	bdt_bins = [round(i,2) for i in np.linspace(0.3,0.8,26)]
-	match_time_bins = [int(i) for i in np.linspace(1000,9000,17)]
+	match_time_bins = [int(i) for i in np.linspace(3000,9000,1)]
 	bets_array = np.zeros([len(bdt_bins),len(match_time_bins)])
 	winnings_array = np.zeros([len(bdt_bins),len(match_time_bins)])
 	model_acc_array = []
@@ -176,13 +176,13 @@ for bet_result in [0,1,2,'all']:
 				#adaboost_learning(training_data=X_train,training_results=Y_train,odds=odds) # dumps a file
 
 				loaded_model = pickle.load(open(script_path + '/XGBoost_dump.sav', 'rb'))
-				#print "Approximate model accuracy", loaded_model.score(X_test, Y_test)
+				#print("Approximate model accuracy", loaded_model.score(X_test, Y_test))
 				model_acc += loaded_model.score(X_test, Y_test)
 
 				boosted_decisions = loaded_model.predict_proba(evaluation_data)
 				
 				bins = np.linspace(0,1,21)
-				#print eval_odds[0]
+				#print(eval_odds[0])
 
 
 				for i_cut, bdt_cut in enumerate(bdt_bins):
@@ -195,7 +195,7 @@ for bet_result in [0,1,2,'all']:
 					bets_array[i_cut][i_time] += bets
 					winnings_array[i_cut][i_time] += winnings
 					win_percent_array[i_cut][i_time] += won
-					#print "BDT cut: ", bdt_cut, "winnings: ", winnings, "bets: ", bets
+					#print("BDT cut: ", bdt_cut, "winnings: ", winnings, "bets: ", bets)
 		model_acc_array.append(model_acc)
 		"""
 		for safety in bins:
@@ -216,9 +216,9 @@ for bet_result in [0,1,2,'all']:
 
 
 
-	print np.array(model_acc_array) / random_states * 100.
-	print winnings_array
-	print bets_array
+	print(np.array(model_acc_array) / random_states * 100.)
+	print(winnings_array)
+	print(bets_array)
 
 	plot_title = "Home next goal. Odds min: %1.2f. Match time: %1.1f min" %(bet_limit,match_time/100.)
 	fig, ((ax1, ax2, ax3), (ax4, ax5, ax6)) = plt.subplots(2, 3, figsize=(16, 12))
@@ -237,7 +237,7 @@ for bet_result in [0,1,2,'all']:
 	fig.colorbar(fig3, ax=ax3, shrink=0.45)
 	ax3.set_title("bets")
 
-	fig4 = ax4.imshow(win_percent_array.T / bets_array.T,cmap='Oranges')
+	fig4 = ax4.imshow(win_percent_array.T / bets_array.T,cmap='PuOr',vmax=1,vmin=0)
 	fig.colorbar(fig4, ax=ax4, shrink=0.45)
 	ax4.set_title("acc on data")
 
