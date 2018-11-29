@@ -33,6 +33,20 @@ def run_scraper(vpn="expressvpn",debug=False):
 
 	while True:
 
+		if len(server_list) < 5:
+			server_list = [["dk1"],["nlam"],["nlro"],["nlth"],
+						["defr1"],["defr2"],["denu"],["deda"],
+						["ukbe"],["ukke"],["uklo"],["ukel"],
+						["ukdo"],["ukbe2"],["se1"],["se2"],
+						["no1"],["frpa1"],["frpa2"],["frst"],
+						["ch1"],["ch2"],["itmi"],["itco"],
+						["ro1"],["be1"],["is1"],["fi1"],
+						["esma"],["esba"],["ie1"],["pt1"],
+						["at1"],["pl1"],["cz1"],["lu1"],
+						["li1"]]
+
+			failed_servers = []
+
 		print "servers: ", server_list
 		print "failed servers: ", failed_servers
 
