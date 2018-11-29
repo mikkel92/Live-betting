@@ -1,9 +1,9 @@
 # Live-betting
 Repository for live prediction of soccer matches
 
-Web scraping of live soccer stats and estimate of profitable live bets
+The project is twofold: Web scraping of live soccer stats (this repo) and estimate of profitable live bets (Analysis repo)
 
-Requirements: Selenium, Chromedriver, Requests
+Web scraping requirements: Selenium, Chromedriver, Requests,
 
 
 
