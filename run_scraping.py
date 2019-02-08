@@ -111,8 +111,8 @@ def run_scraper(vpn="expressvpn",debug=False):
 			start_time = datetime.now()
 
 if __name__ == "__main__":
+	#run_scraper(debug=True)
 	run_scraper()
-
 
 
 
