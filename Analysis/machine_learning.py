@@ -6,11 +6,12 @@ from plotting_tools import *
 from analysis_tools import *
 from data_loader import *
 
-def get_relevant_data(match_data,match_time):
+def get_relevant_data(match_data):
 	
 	# perform basic checks on data before using it
 	if np.count_nonzero(check_match_data(match_data)) != 0:
 		return
+
 
 	# get entries in statistics list	
 	data_entries = match_data[0]["stats"].keys()
@@ -21,20 +22,16 @@ def get_relevant_data(match_data,match_time):
 	time = sorted([float('0' + i["time"][0].replace(':','')) for i in match_data])
 	score = sorted([[float('0' + i["time"][0].replace(':','')),float(i["score"][0]),float(i["score"][1])] for i in match_data])
 	
-	# get number of data points in match earlier than the time of bet
-	used_times = [i for i in time if i < match_time] # data points where time < match_time
-	# define how many datapoints there should be at least
-	if len(used_times) < int(match_time/700.):
-		return
-
-	# get the data point closest to the match_time
-	time_distance = [abs(match_time - i) for i in time]
-	time_index = time_distance.index(min(time_distance))
+	# return the bin content of data for the match aranged in times steps
+	has_data = np.histogram(time,bins=np.linspace(0,9000,19))[0]
 
 	# get the home and away data at different times
 	
 	for keys in data_entries:
 		if keys == "possession": continue
+		if keys == "yellow cards": continue
+		if keys == "red cards": continue
+		if keys == "corners": continue
 		#if keys != "shots on target": continue # Used for faster testing
 		data_home.append(sorted([float(i["stats"][keys][0]) for i in match_data]))
 		data_away.append(sorted([float(i["stats"][keys][1]) for i in match_data]))
@@ -88,26 +85,30 @@ def get_relevant_data(match_data,match_time):
 	# array for the features
 	ML_data = []
 
-	# spline the data, making all data points trained on correspond to the same time in a match
+	# add zero point for splining, if first point is not t=0
 	for row in range(0,len(data_home)):
 		if time[0] > 0.:
 			data_home[row].insert(0,0.0)
 			data_away[row].insert(0,0.0)
+
+	#array for all splines
+	splines = []
+
+	splines.append(score_home_spline[1])
+	splines.append(score_away_spline[1])
+	for row in range(0,len(data_home)):
 		home_spline = spline_data(spline_time,data_home[row])
-		away_spline = spline_data(spline_time,data_away[row])
+		away_spline = spline_data(spline_time,data_away[row])			
+		splines.append(home_spline[1])
+		splines.append(away_spline[1])
+
+
+	for i_time in range(1,len(splines[0])):
+		for i_spline in range(0,len(splines)):
 		
-		for i_time in range(0,len(home_spline[0])):
-			# only train on data that is available at that time in matches
-			if home_spline[0][i_time] > match_time: break
-			#if row == 0: # only append score once
-				#ML_data.append(score_home_spline[1][i_time])
-				#ML_data.append(score_away_spline[1][i_time])
-			ML_data.append(home_spline[1][i_time])
-			ML_data.append(away_spline[1][i_time])
+			ML_data.append(splines[i_spline][i_time])
 
-	# print(ML_data)
-
-	return ML_data
+	return ML_data, has_data
 
 	
 	# spline the data
@@ -117,13 +118,13 @@ def get_relevant_data(match_data,match_time):
 
 	#plot_match_data(match_data[0])
 
-def reagrange_month_data(data,match_time,debug=False,bet_type="next goal"):
-	matches, fails = 0,0
+def reagrange_month_data(data,debug=False):
+	
+	matches = 0
 
+	fails = []
 	training = []
-	results = []
-	odds = []
-	plotting_data = []
+	data_points = []
 
 	for day in data:
 		# test
@@ -136,27 +137,21 @@ def reagrange_month_data(data,match_time,debug=False,bet_type="next goal"):
 		for match in data[day][0]:
 			matches += 1
 			#try:
-			match_data = get_relevant_data(match_data=match,match_time=match_time)
-			if match_data is None:
-				fails += 1
-				continue
-
-			#print(type(match_data))
-			if bet_type == "asian":
-				bet_data = betting_type(match_data=match,match_time=match_time).asian_line()
-			elif bet_type == "next goal":
-				bet_data = betting_type(match_data=match,match_time=match_time).next_goal()
+			match_data = get_relevant_data(match_data=match)
 			
-			if bet_data is None:
-				fails += 1
-				continue
+			if match_data is None:
+				fails.append(matches)
+				match_data = [np.full(2,np.inf)]
 
 			if np.isfinite(match_data[0]).all() : # check that data is not Nan or inf
+				training.append(match_data[0])
+				data_points.append(match_data[1])
 
-				odds.append(bet_data[0])
-				results.append(bet_data[1])
+			else: 
+				fails.append(matches)
+				match_data = [np.full(2,np.inf)]
+				data_points.append(np.inf)
 				training.append(match_data)
-			else: fails += 1
 			"""	
 			except Exception as err:
 				fails += 1
@@ -168,12 +163,70 @@ def reagrange_month_data(data,match_time,debug=False,bet_type="next goal"):
 					sys.exit()
 			"""
 		
+	#print("number of matches in dataset: ", matches)
+	#print("matches with incomplete or bad data: ", len(fails))
 
-	print("number of matches in dataset: ", matches)
-	print("matches that couldn't be used for this betting type: ", fails)
-	# Still uses matches with incomplete data: TODO sort
-	return training, results, odds#, plotting_data
+	return training, data_points, fails
 
+def get_month_bet_info(data,match_time,debug=False,bet_type="next goal"):
+
+	matches = 0
+
+	fails = []
+	results = []
+	odds = []
+
+	for day in data:
+		# test
+		
+		try: 
+			nr_matches = np.shape(data[day][0])[0]
+		except:
+			continue
+
+		for match in data[day][0]:
+			matches += 1
+			
+
+			# check for empty match data
+			if match == []:
+				fails.append(matches)
+				bet_data = [np.full(len(odds[-1]),np.inf),np.inf]#np.full(len(results[-1]),np.inf)]
+			
+			else:
+				if bet_type == "asian":
+					bet_data = betting_type(match_data=match,match_time=match_time).asian_line()
+				elif bet_type == "next goal":
+					bet_data = betting_type(match_data=match,match_time=match_time).next_goal()
+			
+			if matches == 1:
+				print(bet_data)
+			if bet_data is None:
+				
+				fails.append(matches)
+				if bet_type == "asian":
+					bet_data = [np.full(2,np.inf),np.inf]#np.full(len(results[-1]),np.inf)]
+				elif bet_type == "next goal":
+					bet_data = [np.full(3,np.inf),np.inf]#np.full(len(results[-1]),np.inf)]
+				
+
+			odds.append(bet_data[0])
+			results.append(bet_data[1])
+			"""	
+			except Exception as err:
+				fails += 1
+				if debug:
+					print(match_data)
+					print(bet_data[0], bet_data[1])
+					print(err)
+					#traceback.print_exc()
+					sys.exit()
+			"""
+		
+	#print("number of matches in dataset: ", matches)
+	#print("matches that couldn't be used for this betting type: ", len(fails))
+
+	return results, odds, fails
 
 def adaboost_learning(training_data,training_results,odds):
 
@@ -208,7 +261,7 @@ def adaboost_learning(training_data,training_results,odds):
 	filename = os.path.dirname(os.path.realpath(sys.argv[0])) + '/Adaboost_dump.sav'
 	pickle.dump(reg, open(filename, 'wb'))
 
-def XGBoost_learning(training_data,training_results,test_data,test_results,odds,max_depth=3):
+def XGBoost_learning(training_data,training_results,test_data,test_results,max_depth=3):
 
 	import xgboost as xgb
 	import pickle
@@ -217,7 +270,7 @@ def XGBoost_learning(training_data,training_results,test_data,test_results,odds,
 
 	reg.fit(training_data,training_results,
 			eval_set=[(training_data,training_results),(test_data,test_results)],
-			verbose=False,early_stopping_rounds=50)
+			verbose=10,early_stopping_rounds=50)
 
 	#print("Feature importance: \n", reg.feature_importances_)
 
@@ -234,6 +287,7 @@ class betting_type():
 
 		odds: array where all of the odds were saved when scraped
 		"""
+	
 		time = sorted([float('0' + i["time"][0].replace(':','')) for i in match_data])
 		time_distance = [abs(match_time - i) for i in time]
 		time_index = time_distance.index(min(time_distance))
@@ -241,6 +295,7 @@ class betting_type():
 		score = sorted([[float('0' + i["time"][0].replace(':','')),float(i["score"][0]),float(i["score"][1])] for i in match_data])
 		odds = sorted([[float('0' + i["time"][0].replace(':','')),(i["extra odds"])] for i in match_data])
 		
+		self.time = time
 		self.match_time = match_time
 		self.score = score
 		self.time_index = time_index
@@ -250,6 +305,10 @@ class betting_type():
 
 		#if bet_type == "next goal":
 			#print(odds_next_goal)
+
+		# return if the closest odds data point is more than 5 minutes away
+		if abs(self.time[self.time_index] - self.match_time) > 500:
+			return 
 
 		# get the time at which different teams score
 		score_time_home = []

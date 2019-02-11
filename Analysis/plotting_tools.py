@@ -102,7 +102,7 @@ def plot_scrape_succes(year,month):
 
 	plotting_data = {
 					"matches":[],
-					"entire matches":[],
+					"checked matches":[],
 					}
 
 	wierd_teams = 0
@@ -129,14 +129,16 @@ def plot_scrape_succes(year,month):
 
 			if np.count_nonzero(check_match_data(match)) == 0:
 				
-				plotting_data["entire matches"].append(len(match))	
+				plotting_data["checked matches"].append(len(match))	
 				#print(score[:,1])
 				
 				#print(len(match))
 				#break
-			
-	print(wierd_teams,wierd_score,one_data_point)
-	print(max(plotting_data["entire matches"]))
+	print("\nmatches before cleaning: ", sum(plotting_data["matches"]))
+	print("matches with more than two teams: ", wierd_teams)
+	print("matches with <= one data point: ", one_data_point)
+	print("matches where the score is not always increasing: ", wierd_score)
+	
 
 	"""
 	for count,hist in enumerate(month_hist):
@@ -147,7 +149,8 @@ def plot_scrape_succes(year,month):
 	fig, ((ax1, ax2, ax3), (ax4, ax5, ax6)) = plt.subplots(2, 3, figsize=(16, 12))
 	plt.suptitle(plot_title)
 
-	fig1 = ax1.hist(plotting_data["entire matches"],bins=np.linspace(0,30,30),histtype="step",linewidth=2)
+	fig1 = ax1.hist(plotting_data["checked matches"],bins=np.linspace(0,30,30),histtype="step",linewidth=2)
+	print("matches after cleaning: ", int(sum(fig1[0])))
 	ax1.set_title("Data points in match")
 
 	fig2 = ax2.plot(plotting_data["matches"],label="matches")
@@ -167,7 +170,7 @@ def plot_scrape_succes(year,month):
 
 if __name__ == "__main__":
 	#plot_match_data(match_data=load_match(match='AliMil',date='2018/9/5'))
-	plot_scrape_succes(year='2018',month='10')
+	plot_scrape_succes(year='2018',month='9')
 
 
 
