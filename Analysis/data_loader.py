@@ -79,7 +79,7 @@ class data_loader():
 
 if __name__ == "__main__":
 	#dump_month(load_month("2018","9"))
-	loader = data_loader("2018/10/6")
+	loader = data_loader("2018/11/6")
 	loader.load_one_day()
 	loader.dump_month()
 
