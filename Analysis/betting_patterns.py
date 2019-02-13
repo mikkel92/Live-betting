@@ -31,8 +31,7 @@ def next_goal_eval(bdt_cut,boosted_decisions,eval_results,eval_odds,bet_limit,be
 		if eval_odds[match] == "failed":
 			continue
 
-		
-		bet_every_match[eval_results[match]] += eval_odds[match][eval_results[match]]
+		bet_every_match[int(eval_results[match])] += eval_odds[match][int(eval_results[match])]
 		matches += 1
 		
 		if eval_odds[match][max_decision] < bet_limit:
@@ -213,18 +212,23 @@ test_size = 0.25
 bet_type = "next goal"
 
 bdt_bins = [round(i,2) for i in np.linspace(0.3,0.8,26)]
-match_time_bins = [int(i) for i in np.linspace(1000,9000,17)]
+match_time_bins = [int(i) for i in np.linspace(3000,9000,1)]
 
 
 # Load the data
 script_path = os.path.dirname(os.path.realpath(sys.argv[0]))
 file1 = script_path + "/2018_9_month_data.json"
 file2 = script_path + "/2018_10_month_data.json"
-#file3 = script_path + "/2018_11_month_data.json"
+file3 = script_path + "/2018_11_month_data.json"
 
-files = [file1, file2]#, file3]
+files = [file1]#, file2]#, file3]
 
 ML_data, data_points, data_fails = get_ML_data(files=files)
+for i in range(1,len(ML_data)):
+	if len(ML_data[i]) != len(ML_data[i-1]):
+		print(len(ML_data[i]),len(ML_data[i-1]),i)
+		if len(ML_data[i]) == 1:
+			print(ML_data[i])
 
 
 
@@ -241,38 +245,35 @@ for bet_result in [0]:#,1,2,'all']:
 
 		results, odds, odds_fails = get_bet_data(files=files,match_time=match_time,bet_type=bet_type,debug=False)
 		ML_data, data_points, odds, results =  clean_ML_data(ML_data, data_points, odds, results)
-		
-		"""
-		# Rearange data for machine learning
-		data1, results1, odds1 = reagrange_month_data(data=train_data,match_time=match_time,debug=False,bet_type=bet_type)
-		data2, results2, odds2 = reagrange_month_data(data=eval_data,match_time=match_time,debug=False,bet_type=bet_type)
-		all_data = np.concatenate((data1,data2))
-		all_results = np.concatenate((results1,results2))
-		all_odds = np.concatenate((odds1,odds2))
-		all_data = np.column_stack((all_data,all_odds))
-		all_data = all_data[:,-13:]
-		# sample for applying model
-		data3, results3, odds3 = reagrange_month_data(data=nov_data,match_time=match_time,debug=False,bet_type=bet_type)
-		nextlvl_data = np.column_stack((data3,odds3))
-		nextlvl_data = nextlvl_data[:,-13:]
-		"""
+		ML_data = np.stack(ML_data)
 		model_acc = 0
+		np.save(script_path + "/ML_data",ML_data)
 
 		for i_rand in range(0,random_states): # loop over random states
 
-			for i in range(1,len(ML_data)):
-				if len(ML_data[i]) != len(ML_data[i-1]):
-					print(len(ML_data[i]))
-			print(np.shape(ML_data))
-			ML_data = np.array(np.column_stack((ML_data,odds)))
-			print(ML_data[0])
-			print(np.shape(ML_data))
-			X_data, X_valid, Y_data, Y_valid = model_selection.train_test_split(ML_data, results, test_size=0.4,random_state=i_rand)
+			
+			ML_data_odds = np.column_stack((ML_data,odds))
+			
+			
+			X_data, X_valid, Y_data, Y_valid = model_selection.train_test_split(ML_data_odds, results, test_size=0.4,random_state=i_rand)
 			X_train, X_test, Y_train, Y_test = model_selection.train_test_split(X_data, Y_data, test_size=test_size,random_state=i_rand)
 			
-			n_features = len(X_data[0])
-			train_odds = X_data[:,-3:]
+			data_odds = X_data[:,-3:]
 			eval_odds = X_valid[:,-3:] # get the odds rearange in the same way as training data
+
+			# only use the data before the given time in matches
+
+			print(np.shape(ML_data))
+			n_features = np.shape(ML_data)[1]
+			n_used_features = int(match_time * n_features / 10000.)
+			print("n features:", n_used_features)
+
+			X_valid = X_valid[:, 0:n_used_features]
+			X_train = X_train[:, 0:n_used_features]
+			X_test = X_test[:, 0:n_used_features]
+
+			
+			
 			#X_train = np.delete(X_train,[n_features,n_features-1,n_features-2],axis=1)
 			#X_test = np.delete(X_test,[n_features,n_features-1,n_features-2],axis=1)
 			#X_valid = np.delete(X_valid,[n_features,n_features-1,n_features-2],axis=1)
@@ -293,17 +294,15 @@ for bet_result in [0]:#,1,2,'all']:
 				boosted_decisions = loaded_model.predict_proba(evaluation_data)
 				
 				bins = np.linspace(0,1,21)
-				#print(eval_odds[0])
-
-
+			
 				for i_cut, bdt_cut in enumerate(bdt_bins):
 
 					if bet_type == "asian":
 						succes, fails, winnings, bets, won = asian_line_eval(bdt_cut=bdt_cut,boosted_decisions=boosted_decisions,eval_results=eval_results,eval_odds=eval_odds,bet_limit=bet_limit)
 					elif bet_type == "next goal":
 						#succes, fails, winnings, bets, won, bet_every_match, matches = next_goal_eval(bdt_cut=bdt_cut,boosted_decisions=boosted_decisions,eval_results=eval_results,eval_odds=eval_odds,bet_limit=bet_limit,bet_result=bet_result)
-						boosted_decisions = loaded_model.predict_proba(nextlvl_data)
-						succes, fails, winnings, bets, won, bet_every_match, matches = next_goal_eval(bdt_cut=bdt_cut,boosted_decisions=boosted_decisions,eval_results=results3,eval_odds=odds3,bet_limit=bet_limit,bet_result=bet_result)
+						boosted_decisions = loaded_model.predict_proba(evaluation_data)
+						succes, fails, winnings, bets, won, bet_every_match, matches = next_goal_eval(bdt_cut=bdt_cut,boosted_decisions=boosted_decisions,eval_results=eval_results,eval_odds=eval_odds,bet_limit=bet_limit,bet_result=bet_result)
 					
 					bets_array[i_cut][i_time] += bets
 					winnings_array[i_cut][i_time] += winnings
