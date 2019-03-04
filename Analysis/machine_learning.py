@@ -51,26 +51,17 @@ def get_relevant_data(match_data):
 
 	# arange the score in a step spline
 	spline_time = [i[0] for i in score]
-	home_score = [i[0:2] for i in score]
-	away_score = [[i[0],i[2]] for i in score]
-	for i_s in range(0,len(score) - 1):
-		if score[i_s][1] > score[i_s + 1][1] or score[i_s][2] > score[i_s + 1][2]:
-			return
-		if home_score[i_s][1] != home_score[i_s + 1][1]:
-			home_score[i_s][0] = home_score[i_s + 1][0] - 0.01
-		if away_score[i_s][1] != away_score[i_s + 1][1]:
-			away_score[i_s][0] = away_score[i_s + 1][0] - 0.01
+	home_score = [i[1] for i in score]
+	away_score = [i[2] for i in score]
+	#print(score)
 
-	home_time = [i[0] for i in home_score]
-	home_score = [i[1] for i in home_score]
-	away_time = [i[0] for i in away_score]
-	away_score = [i[1] for i in away_score]
 	try:
-		score_home_spline = spline_data(home_time,home_score)
-		score_away_spline = spline_data(away_time,away_score)
+		score_home_spline = step_spline(spline_time,home_score)
+		score_away_spline = step_spline(spline_time,away_score)
 	except:
-		print(home_time, home_score)
+		print( home_score)
 		sys.exit()
+
 	"""
 	plt.scatter(home_time,home_score,s=20,alpha= 0.7)
 	plt.plot(score_home_spline[0],score_home_spline[1])
@@ -313,57 +304,93 @@ class betting_type():
 		# get the time at which different teams score
 		score_time_home = []
 		score_time_away = []
+		
+		# Get a vector with information of who scores next throughout the match
 		for i_time in range(1,len(self.score)):
-			if self.score[i_time][1] != self.score[i_time - 1][1] and self.score[i_time][2] == self.score[i_time - 1][2]: 
-				score_time_home.append(self.score[i_time][0])
-			elif self.score[i_time][1] == self.score[i_time - 1][1] and self.score[i_time][2] != self.score[i_time - 1][2]:	
-				score_time_away.append(self.score[i_time][0])
-			else: continue
+			# don't use matches where goals are not aranged in time order. These could be half time fuck ups or discarded goals
+			if self.score[i_time][1] != self.score[i_time - 1][1] and self.score[i_time][1] < self.score[i_time - 1][1]:
+				return
+			if self.score[i_time][2] != self.score[i_time - 1][2] and self.score[i_time][2] < self.score[i_time - 1][2]:
+				return
 
-		bet_next_goal_home = 0
+			if self.score[i_time][1] != self.score[i_time - 1][1]:# and self.score[i_time][2] == self.score[i_time - 1][2]: 
+				for i_goals in range(0,int(abs(self.score[i_time][1] - self.score[i_time - 1][1]))): 
+					score_time_home.append(self.score[i_time][0])
+			if self.score[i_time][2] != self.score[i_time - 1][2]:# self.score[i_time][1] == self.score[i_time - 1][1] and self.score[i_time][2] != self.score[i_time - 1][2]:	
+				for i_goals in range(0,int(abs(self.score[i_time][2] - self.score[i_time - 1][2]))): 
+					score_time_away.append(self.score[i_time][0])
+		
+		next_goal_odds = []
+		
+		next_goal_bet =  next_goal_spline(score_time_home,score_time_away)[1]
 
-		# get next score from match time:
-		goals_home = np.array(score_time_home) - self.match_time
-		goals_away = np.array(score_time_away) - self.match_time
-		next_goals = [0,0]
-
-		try: 
-			next_goals[0] = min(goals_home[goals_home >= 0])
-		except: next_goals[0] = np.inf
-		try: 
-			next_goals[1] = min(goals_away[goals_away >= 0])
-		except: next_goals[1] = np.inf
-
-		# return None maybe, when it is unknown who scored next goal
-		if next_goals[0] == next_goals[1] and next_goals[0] == np.inf:
-			bet_next_goal_home = 1
-		elif next_goals[0] == min(next_goals):
-			bet_next_goal_home = 0
-		elif next_goals[0] == next_goals[1]:
-			return
-		else: 
-			bet_next_goal_home = 2
+		#print(all_odds)
 
 
-		all_odds = self.odds[self.time_index]
-		next_goal = int(self.score[self.time_index][1] + self.score[self.time_index][2] + 1)
+		for i_o in range(0,len(self.odds)):
 
-		for odds_type in all_odds[1]:
+			found_odds = False			
+			next_goal = len(np.unique(np.where(np.concatenate((score_time_away,score_time_home)) <= self.odds[i_o][0]))) + 1
 			search_str = "%i. m\\u00e5l" % next_goal
 
-			if str(search_str) == str(odds_type[0]):
-				try: 
-					odds = [float(odds_type[2]), float(odds_type[4]), float(odds_type[6])]
-					#time[time_index]
-					
-					return odds, bet_next_goal_home
+			for odds_type in self.odds[i_o][1]:
 
-				except: return 
+				if str(search_str) == str(odds_type[0]):
+					found_odds = True
+					try: 
+						odds = [self.odds[i_o][0], float(odds_type[2]), float(odds_type[4]), float(odds_type[6])]
+						next_goal_odds.append(odds)
 
-		return 
+					except: 
+						try:
+							#print("exception1!")
+							odds = [self.odds[i_o][0], next_goal_odds[-1][1], next_goal_odds[-1][2], next_goal_odds[-1][3]]
+							#print(odds)
+							next_goal_odds.append(odds)
+							continue
+						except:
+							#print("exception1!")
+							return
+			
+			if found_odds == False:
+				try:	
+					#print("exception2!")
+					odds = [self.odds[i_o][0], next_goal_odds[-1][1], next_goal_odds[-1][2], next_goal_odds[-1][3]]
+					#print(odds)
+					next_goal_odds.append(odds)
+					continue
+				except:
+					#print("exception2!")
+					return
+
+		try:
+			next_goal_odds = np.stack(next_goal_odds)
+		except: return
+		try:
+			odds_home_spline = step_spline(self.time,next_goal_odds[:,1])
+			odds_nogoal_spline = step_spline(self.time,next_goal_odds[:,2])
+			odds_away_spline = step_spline(self.time,next_goal_odds[:,3])
+			odds_splines = [odds_home_spline[1], odds_nogoal_spline[1], odds_away_spline[1]]
+	
+		except:
+			return
+			"""
+			[print(a) for a in self.odds]
+			[print(a[0]) for a in self.odds]
+			
+			print(len(self.odds))
+			print("\n", self.time)
+			print(next_goal_odds)
+			print(self.score)
+			print(search_str)
+			raise Exception
+			"""
+
+		return odds_splines, next_goal_bet
 
 	def asian_line(self):
-
+		print("Check asian_line function in machine_learning.py before using it: Needs to be updated. Stopping script....")
+		sys.exit()
 		# get current score and end result of match
 		current_goals_home = self.score[self.time_index][1]
 		current_goals_away = self.score[self.time_index][2]

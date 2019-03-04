@@ -221,16 +221,9 @@ file1 = script_path + "/2018_9_month_data.json"
 file2 = script_path + "/2018_10_month_data.json"
 file3 = script_path + "/2018_11_month_data.json"
 
-files = [file1]#, file2]#, file3]
+files = [file1]#, file2, file3]
 
 ML_data, data_points, data_fails = get_ML_data(files=files)
-for i in range(1,len(ML_data)):
-	if len(ML_data[i]) != len(ML_data[i-1]):
-		print(len(ML_data[i]),len(ML_data[i-1]),i)
-		if len(ML_data[i]) == 1:
-			print(ML_data[i])
-
-
 
 
 for bet_result in [0]:#,1,2,'all']:
@@ -245,9 +238,15 @@ for bet_result in [0]:#,1,2,'all']:
 
 		results, odds, odds_fails = get_bet_data(files=files,match_time=match_time,bet_type=bet_type,debug=False)
 		ML_data, data_points, odds, results =  clean_ML_data(ML_data, data_points, odds, results)
+		print(np.shape(ML_data),np.shape(data_points),np.shape(odds),np.shape(results))
+		print(ML_data[0])
+		print(data_points[0])
+		print(odds[0])
+		print(results[0])
 		ML_data = np.stack(ML_data)
 		model_acc = 0
 		np.save(script_path + "/ML_data",ML_data)
+		np.save(script_path + "/results",results)
 
 		for i_rand in range(0,random_states): # loop over random states
 
