@@ -9,6 +9,7 @@ from selenium.common.exceptions import NoSuchAttributeException
 from selenium.webdriver.common.keys import Keys
 import urllib, json
 from datetime import datetime
+from live_analysis import *
 
 def get_match_data(button,browser,debug=False):
 
@@ -230,7 +231,7 @@ def save_data(data,debug=False):
 			print("Unable to save data")
 
 
-def scrape_betting(debug=False):
+def scrape_betting(live_analysis=True,debug=False):
 
 	page_url_mobile = "https://mobile.bet365.dk/#type=InPlay;"
 	page_url = "https://www.bet365.dk/#/IP/"
@@ -291,7 +292,12 @@ def scrape_betting(debug=False):
 		# Try to get the data from match
 		
 		match_data = get_match_data(button=button,browser=browser,debug=debug)
-		
+
+		# Perform live analysis
+		if live_analysis:
+			simple_analysis(rearange_data(match_data))
+			sys.exit()
+
 		# If the event is not a soccer match, then break
 		if match_data == "not_soccer_match":
 			if debug:

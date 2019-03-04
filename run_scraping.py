@@ -3,6 +3,8 @@ from scrape_bet365 import scrape_betting
 import numpy as np
 from datetime import datetime
 import time
+import random
+
 
 def run_scraper(vpn="expressvpn",debug=False):
 
@@ -26,7 +28,9 @@ def run_scraper(vpn="expressvpn",debug=False):
 						["li1"]]
 
 		failed_servers = []
-
+		
+		random.shuffle(server_list)
+	
 	scrape_site = "success"
 	counter = 0
 	start_time = datetime.now()
@@ -68,7 +72,7 @@ def run_scraper(vpn="expressvpn",debug=False):
 					print rand_fail_server
 					connect_with_expressvpn(server=rand_fail_server)
 					print "successfully connected to ", rand_fail_server
-					scrape_site = scrape_betting(debug=debug)
+					scrape_site = scrape_betting(live_analysis=True,debug=debug)
 					disconnect_with_expressvpn()
 
 					if scrape_site == "success":
