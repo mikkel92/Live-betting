@@ -231,8 +231,8 @@ def save_data(data,debug=False):
 			print("Unable to save data")
 
 
-def scrape_betting(live_analysis=True,debug=False):
-
+def scrape_betting(live_analysis=True,database=None,debug=False):
+	
 	page_url_mobile = "https://mobile.bet365.dk/#type=InPlay;"
 	page_url = "https://www.bet365.dk/#/IP/"
 	
@@ -295,8 +295,14 @@ def scrape_betting(live_analysis=True,debug=False):
 
 		# Perform live analysis
 		if live_analysis:
-			simple_analysis(rearange_data(match_data))
-			sys.exit()
+			HT, AT = simple_analysis(rearange_data(match_data))
+			mycursor = database.cursor()
+			sql = "INSERT INTO scores (ht_score, at_score) VALUES (%s, %s)"
+			val = (HT, AT)
+			mycursor.execute(sql, val)
+
+			database.commit()
+			
 
 		# If the event is not a soccer match, then break
 		if match_data == "not_soccer_match":

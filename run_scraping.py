@@ -4,10 +4,20 @@ import numpy as np
 from datetime import datetime
 import time
 import random
+import mysql.connector
 
 
 def run_scraper(vpn="expressvpn",debug=False):
+	
+	mydb = mysql.connector.connect(
+	  host="localhost",
+	  user="root",
+	  passwd="",
+	  database="bets"
+	)
 
+	live_analysis = False
+	
 	if vpn == "mullvad":
 		server_list = get_mullvad_servers()
 		# list of servers working this connection way
@@ -35,7 +45,8 @@ def run_scraper(vpn="expressvpn",debug=False):
 	counter = 0
 	start_time = datetime.now()
 
-	while True:
+	run = True
+	while run:
 
 		if len(server_list) < 5:
 			server_list = [["dk1"],["nlam"],["nlro"],["nlth"],
@@ -72,7 +83,7 @@ def run_scraper(vpn="expressvpn",debug=False):
 					print rand_fail_server
 					connect_with_expressvpn(server=rand_fail_server)
 					print "successfully connected to ", rand_fail_server
-					scrape_site = scrape_betting(live_analysis=True,debug=debug)
+					scrape_site = scrape_betting(live_analysis=live_analysis,database=mydb,debug=debug)
 					disconnect_with_expressvpn()
 
 					if scrape_site == "success":
@@ -85,7 +96,7 @@ def run_scraper(vpn="expressvpn",debug=False):
 				except:
 	
 					connect_with_expressvpn(server=server)
-					scrape_site = scrape_betting(debug=debug)
+					scrape_site = scrape_betting(live_analysis=live_analysis,database=mydb,debug=debug)
 				
 					if scrape_site == "failed":
 						failed_servers.append(server_list.pop(server_list.index(server)))
@@ -98,7 +109,7 @@ def run_scraper(vpn="expressvpn",debug=False):
 			else:
 
 				connect_with_expressvpn(server=server)
-				scrape_site = scrape_betting(debug=debug)
+				scrape_site = scrape_betting(live_analysis=live_analysis,database=mydb,debug=debug)
 			
 				if scrape_site == "failed":
 					failed_servers.append(server_list.pop(server_list.index(server)))
