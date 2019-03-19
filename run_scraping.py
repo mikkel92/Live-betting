@@ -69,20 +69,18 @@ def run_scraper(vpn="expressvpn",debug=False):
 
 			counter += 1
 
-			print "last server: ", scrape_site
-
 			if counter < len(server_list):
 				scrape_site = "failed"
 			
-				
+			print("Time connected: ", str(datetime.now()))	
 			# If the last server successfully loaded the matches
 			if scrape_site == "success":
 
 				try:
 					rand_fail_server = failed_servers[int(np.random.rand()*len(failed_servers))] # get random server in the failed list
-					print rand_fail_server
+					
 					connect_with_expressvpn(server=rand_fail_server)
-					print "successfully connected to ", rand_fail_server
+					
 					scrape_site = scrape_betting(live_analysis=live_analysis,database=mydb,debug=debug)
 					disconnect_with_expressvpn()
 
@@ -90,6 +88,7 @@ def run_scraper(vpn="expressvpn",debug=False):
 						server_list.append(failed_servers.pop(failed_servers.index(rand_fail_server)))
 						
 					else:
+						disconnect_with_expressvpn()
 						continue
 						
 
@@ -119,6 +118,7 @@ def run_scraper(vpn="expressvpn",debug=False):
 
 				disconnect_with_expressvpn()
 			
+			print "last server: ", scrape_site
 			scrape_time = datetime.now() - start_time 
 			
 			time.sleep(abs(299.5 - scrape_time.total_seconds()))

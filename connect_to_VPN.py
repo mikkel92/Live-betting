@@ -116,18 +116,13 @@ def connect_with_expressvpn(server):
 	
 	terminal_command = "expressvpn connect %s" % (server[0])
 	os.system(terminal_command)
-	print "Connecting to server: %s" % (server[0])
 
 	time.sleep(10)
 
 def disconnect_with_expressvpn():
 
-	try:
-		print "Disconnecting from server"
-		os.system('expressvpn disconnect')
-	except:
-		print "Not connected via expressvpn"
-
+	os.system('expressvpn disconnect')
+	
 	time.sleep(5) # takes a few seconds to disconnect
 
 

@@ -200,7 +200,8 @@ def save_data(data,debug=False):
 
 	# Create folder for data if it doesn't exists
 	time_now = datetime.now()
-	save_path = "%s/%s/%s/%s/" % (os.getcwd(),time_now.year,time_now.month,time_now.day)
+	script_path = os.path.dirname(os.path.realpath(sys.argv[0]))
+	save_path = "%s/%s/%s/%s/" % (script_path,time_now.year,time_now.month,time_now.day)
 	if not os.path.exists(save_path):
 		os.makedirs(save_path)
 	
