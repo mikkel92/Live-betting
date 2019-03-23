@@ -9,7 +9,10 @@ from selenium.common.exceptions import NoSuchAttributeException
 from selenium.webdriver.common.keys import Keys
 import urllib, json
 from datetime import datetime
-from live_analysis import *
+sys.path.insert(0, '/home/mikkel/Desktop/Live-betting/ML_analysis/')
+from live_ML_analysis import load_live_match
+from data_loader import data_loader
+
 
 def get_match_data(button,browser,debug=False):
 
@@ -293,16 +296,6 @@ def scrape_betting(live_analysis=True,database=None,debug=False):
 		# Try to get the data from match
 		
 		match_data = get_match_data(button=button,browser=browser,debug=debug)
-
-		# Perform live analysis
-		if live_analysis:
-			HT, AT = simple_analysis(rearange_data(match_data))
-			mycursor = database.cursor()
-			sql = "INSERT INTO scores (ht_score, at_score) VALUES (%s, %s)"
-			val = (HT, AT)
-			mycursor.execute(sql, val)
-
-			database.commit()
 			
 
 		# If the event is not a soccer match, then break
@@ -319,12 +312,17 @@ def scrape_betting(live_analysis=True,database=None,debug=False):
 				continue
 			else: 
 				save_data(data=match_data,debug=debug)
+				if live_analysis:
+					asian_live_analysis(match_data=match_data, database=database)
 				continue
 
 		# Save the match data if successfully scraped
 		else:
 			save_data(data=match_data,debug=debug)
+			if live_analysis:
+				asian_live_analysis(match_data=match_data, database=database)
 			continue
+
 		
 	# Try to get the data from the failed matches one more time, before ending script
 	for button in failed_loads:
@@ -335,6 +333,8 @@ def scrape_betting(live_analysis=True,database=None,debug=False):
 				print("failed to get page second time")
 		else:
 			save_data(data=match_data,debug=debug)
+			if live_analysis:
+				asian_live_analysis(match_data=match_data, database=database)
 
 
 	#print source
@@ -342,6 +342,31 @@ def scrape_betting(live_analysis=True,database=None,debug=False):
 	
 	return "success"
 
+def asian_live_analysis(match_data,database):
+	
+	startTime = datetime.now()
+
+	try:
+		data = rearange_data(match_data) # exits here if match doesn't have the required stats
+		match_time = float(data["time"][0].replace(":", "."))
+
+		if 52.3 < match_time < 72.3:
+			
+			match_team = data["teams"]
+			club1 = match_team[0].replace(" ", "")
+			club2 = match_team[1].replace(" ", "")
+			match_to_load = club1[0:3] + club2[0:3]
+			
+			load_live_match(match=match_to_load,database=database)	
+			#print "live analysis took ", datetime.now() - startTime
+		else: pass
+	
+	except Exception as err:
+		exc_type, exc_obj, exc_tb = sys.exc_info()
+		fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+		#print(exc_type, fname, exc_tb.tb_lineno)
+
+	
 # Run code without VPN by running this script directly
 if __name__ == "__main__":
 	scrape_betting(debug=True)

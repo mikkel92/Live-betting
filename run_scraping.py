@@ -5,6 +5,7 @@ from datetime import datetime
 import time
 import random
 import mysql.connector
+from data_loader import data_loader
 
 
 def run_scraper(vpn="expressvpn",debug=False):
@@ -16,7 +17,7 @@ def run_scraper(vpn="expressvpn",debug=False):
 	  database="bets"
 	)
 
-	live_analysis = False
+	live_analysis = True
 	
 	if vpn == "mullvad":
 		server_list = get_mullvad_servers()
@@ -120,8 +121,12 @@ def run_scraper(vpn="expressvpn",debug=False):
 			
 			print "last server: ", scrape_site
 			scrape_time = datetime.now() - start_time 
-			
-			time.sleep(abs(299.5 - scrape_time.total_seconds()))
+			if 299.5 - scrape_time.total_seconds() < 0:
+				start_time = datetime.now()
+				continue
+			else:
+				print "sleeping for ", abs(299.5 - scrape_time.total_seconds()), " seconds"
+				time.sleep(abs(299.5 - scrape_time.total_seconds()))
 			
 			start_time = datetime.now()
 
