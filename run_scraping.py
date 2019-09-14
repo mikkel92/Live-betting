@@ -1,3 +1,5 @@
+#!/home/mikkel/anaconda2/bin/python
+
 from connect_to_VPN import *
 from scrape_bet365 import scrape_betting
 import numpy as np
@@ -8,8 +10,12 @@ import mysql.connector
 from data_loader import data_loader
 
 
+
 def run_scraper(vpn="expressvpn",debug=False):
-	
+
+	restart_time = datetime.now()
+
+	"""
 	mydb = mysql.connector.connect(
 	  host="localhost",
 	  user="root",
@@ -17,8 +23,14 @@ def run_scraper(vpn="expressvpn",debug=False):
 	  database="bets"
 	)
 
-	live_analysis = True
-	
+	mycursor = mydb.cursor()
+	mycursor.execute("DELETE FROM BettingData WHERE Time < NOW() - INTERVAL 10 HOUR")
+	"""
+
+
+	mydb = 'a'
+	live_analysis = False
+
 	if vpn == "mullvad":
 		server_list = get_mullvad_servers()
 		# list of servers working this connection way
@@ -30,12 +42,12 @@ def run_scraper(vpn="expressvpn",debug=False):
 		server_list = [["dk1"],["nlam"],["nlro"],["nlth"],
 						["defr1"],["defr2"],["denu"],["deda"],
 						["ukbe"],["ukke"],["uklo"],["ukel"],
-						["ukdo"],["ukbe2"],["se1"],["se2"],
+						["ukdo"],["se1"],["se2"],
 						["no1"],["frpa1"],["frpa2"],["frst"],
 						["ch1"],["ch2"],["itmi"],["itco"],
 						["ro1"],["be1"],["is1"],["fi1"],
 						["esma"],["esba"],["ie1"],["pt1"],
-						["at1"],["pl1"],["cz1"],["lu1"],
+						["at1"],["cz1"],["lu1"],
 						["li1"]]
 
 		failed_servers = []
@@ -49,16 +61,17 @@ def run_scraper(vpn="expressvpn",debug=False):
 	run = True
 	while run:
 
+
 		if len(server_list) < 5:
 			server_list = [["dk1"],["nlam"],["nlro"],["nlth"],
 						["defr1"],["defr2"],["denu"],["deda"],
 						["ukbe"],["ukke"],["uklo"],["ukel"],
-						["ukdo"],["ukbe2"],["se1"],["se2"],
+						["ukdo"],["se1"],["se2"],
 						["no1"],["frpa1"],["frpa2"],["frst"],
 						["ch1"],["ch2"],["itmi"],["itco"],
 						["ro1"],["be1"],["is1"],["fi1"],
 						["esma"],["esba"],["ie1"],["pt1"],
-						["at1"],["pl1"],["cz1"],["lu1"],
+						["at1"],["cz1"],["lu1"],
 						["li1"]]
 
 			failed_servers = []
@@ -67,7 +80,7 @@ def run_scraper(vpn="expressvpn",debug=False):
 		print "failed servers: ", failed_servers
 
 		for server in server_list: 
-
+			
 			counter += 1
 
 			if counter < len(server_list):
@@ -129,10 +142,13 @@ def run_scraper(vpn="expressvpn",debug=False):
 				time.sleep(abs(299.5 - scrape_time.total_seconds()))
 			
 			start_time = datetime.now()
-
+			
+			if (datetime.now() - restart_time).total_seconds() > 3600 * 6:
+				os.system("sudo reboot now")
+				
 if __name__ == "__main__":
-	#run_scraper(debug=True)
-	run_scraper()
+	run_scraper(debug=True)
+	#run_scraper()
 
 
 

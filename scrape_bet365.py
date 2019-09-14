@@ -37,30 +37,38 @@ def get_match_data(button,browser,debug=False):
 
 	try:
 		# click match button and wait a bit for it to load
+		
 		start_time = datetime.now()
 		button.click()
 		time.sleep(0.5)
 		inner_html = str(button.get_attribute('innerHTML').encode(encoding='UTF-8',errors='strict'))
-
+		
 		# change to stats tab i live stream is an option for the match
 		if "ipn-ScoreDisplayStandard_AVIcon" in inner_html:
+			#live_tab = browser.find_element_by_class_name("lv-ButtonBar_LiveStream")
+			#live_tab.click()
+
+			# PROBLEMER MED AT FAA STATS TAB'EN FREM, NEEDS HOTFIX
 			stats_tab = browser.find_element_by_class_name("lv-ButtonBar_MatchLive")
 			stats_tab.click()
 			time.sleep(0.5)
-
-		event_team = browser.find_elements_by_class_name("ml1-ScoreHeader_TeamText")
-		event_time = browser.find_elements_by_class_name("ml1-ScoreHeader_Clock")
-		score_data = browser.find_elements_by_class_name("ml1-ScoreHeader_Column")
+		print('Getting data:')
+		event_team1 = browser.find_elements_by_class_name("ml1-ScoreHeaderSoccer_Team1Name")
+		event_team2 = browser.find_elements_by_class_name("ml1-ScoreHeaderSoccer_Team2Name")
+		event_time = browser.find_elements_by_class_name("ml1-ScoreHeaderSoccer_Clock")
+		score_data = browser.find_elements_by_class_name("ml1-ScoreHeaderSoccer_TeamScore")
 		event_data = browser.find_elements_by_class_name("ml1-AllStats")
 		evex1_data = browser.find_elements_by_class_name("ml1-StatWheel_Team1Text") # Properly extracts team stats from event data window
 		evex2_data = browser.find_elements_by_class_name("ml1-StatWheel_Team2Text")
-		event_odds = browser.find_elements_by_class_name("gl-MarketGroup")
+		event_odds = browser.find_elements_by_class_name("gll-MarketGroup")
 		red_cards = browser.find_elements_by_class_name("ipe-SoccerGridColumn_IRedCard")
 		yellow_cards = browser.find_elements_by_class_name("ipe-SoccerGridColumn_IYellowCard")
 		corners = browser.find_elements_by_class_name("ipe-SoccerGridColumn_ICorner")
 		
-		processed_event_team = split_data(event_team)
-		processed_event_time = event_time[0].text
+		processed_event_team1 = split_data(event_team1)
+		processed_event_team2 = split_data(event_team2)
+		processed_event_team = [processed_event_team1[0], processed_event_team2[0]]
+		processed_event_time = str(inner_html.split('Standard_Timer">')[1][0:5]) #event_time[0].text
 		processed_score_data = split_data(score_data)
 		processed_event_data = split_data(event_data)
 		processed_evex1_data = split_data(evex1_data)
@@ -69,11 +77,11 @@ def get_match_data(button,browser,debug=False):
 		processed_red_cards = split_data(red_cards)
 		processed_yellow_cards = split_data(yellow_cards)
 		processed_corners = split_data(corners) 
-
+		
 		match_data = [processed_event_team, processed_event_time, processed_event_data,
 		processed_event_odds, processed_score_data, processed_evex1_data, processed_evex2_data, 
 		processed_yellow_cards, processed_red_cards, processed_corners]
-
+		
 		if debug:
 			print("Successfully found match data")
 		
@@ -102,7 +110,8 @@ def split_data(data):
 	return splitlist
 
 def rearange_data(data):
-	#print(data)
+	
+	
 	structured_data = {"teams":[],
 					   "score":[],
 					   "time":[],
@@ -116,14 +125,14 @@ def rearange_data(data):
 	# team names
 	structured_data["teams"].append(data[0][0][0])
 	structured_data["teams"].append(data[0][1][0])
-
+	
 	# score
-	structured_data["score"].append(data[4][0][1])
+	structured_data["score"].append(data[4][0][0])
 	structured_data["score"].append(data[4][1][0])
-
+	
 	# time
 	structured_data["time"].append(data[1])	
-
+	
 	# stats
 	structured_data["stats"]["attacks"].append(data[5][0][0])
 	structured_data["stats"]["attacks"].append(data[6][0][0])
@@ -133,7 +142,7 @@ def rearange_data(data):
 	structured_data["stats"]["shots off target"].append(data[2][0][-1])
 	structured_data["stats"]["shots on target"].append(data[2][0][-4])
 	structured_data["stats"]["shots on target"].append(data[2][0][-3])
-
+	
 	# cards and corners
 	structured_data["stats"]["yellow cards"].append(data[7][0][0])
 	structured_data["stats"]["yellow cards"].append(data[7][0][1])
@@ -141,7 +150,7 @@ def rearange_data(data):
 	structured_data["stats"]["red cards"].append(data[8][0][1])
 	structured_data["stats"]["corners"].append(data[9][0][0])
 	structured_data["stats"]["corners"].append(data[9][0][1])
-
+	
 	if len(data[2][0]) == 9: # matches with possession stats
 		structured_data["stats"]["possession"].append(data[5][2][0])
 		structured_data["stats"]["possession"].append(data[6][2][0])
@@ -192,7 +201,7 @@ def rearange_data(data):
 		# other odds:
 		structured_data["extra odds"] = data[3]
 
-		return structured_data
+	return structured_data
 
 def save_data(data,debug=False):
 
@@ -209,6 +218,7 @@ def save_data(data,debug=False):
 		os.makedirs(save_path)
 	
 	try:
+		
 		save_data = rearange_data(data)
 		match_team = save_data["teams"]
 		match_time = save_data["time"][0].replace(":", "")
@@ -286,6 +296,8 @@ def scrape_betting(live_analysis=True,database=None,debug=False):
 
 		# skip matches that have not started yet (TODO: sometimes fails)
 		try:
+			# check that  match data loks correct
+			print(get_match_data(button=event_buttons[0],browser=browser,debug=debug))
 			if float(match_time[counter].text[0:2]) < 1:
 				continue
 		except Exception as err: 
@@ -296,7 +308,18 @@ def scrape_betting(live_analysis=True,database=None,debug=False):
 		# Try to get the data from match
 		
 		match_data = get_match_data(button=button,browser=browser,debug=debug)
+		if counter == 0:
+			try:
+				if len(match_data[0][0][0]) < 2:
+					browser.close()
+					return "failed"
 			
+			except Exception as err: 
+				if debug:
+					print("Could not get the name of first team")
+					print("Error message:", err)
+				browser.close()
+				return "failed"
 
 		# If the event is not a soccer match, then break
 		if match_data == "not_soccer_match":
